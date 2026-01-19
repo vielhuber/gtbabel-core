@@ -2878,7 +2878,8 @@ class Test extends \PHPUnit\Framework\TestCase
         $str = preg_replace('/>\s+/u', '>', $str);
         $str = preg_replace('/\s+</u', '<', $str);
 
-        // decode HTML entities first so we can normalize the actual characters
+        // decode HTML entities multiple times to catch all variants
+        $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
         // normalize all dash/hyphen variations to standard hyphen-minus

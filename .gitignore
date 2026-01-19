@@ -4,6 +4,7 @@ composer.lock
 log.txt
 /locales/*
 /.phpunit.result.cache
+/.phpunit.cache
 /tests/phpunit/files/**/*_expected
 /tests/phpunit/data.db
 /tests/integration/logs/*

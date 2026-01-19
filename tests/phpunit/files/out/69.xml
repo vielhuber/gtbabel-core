@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/xsl" href="//gtbabel.local.vielhuber.de/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl"?>
+<?xml-stylesheet type="text/xsl" href="//gtbabel.vielhuber.dev/wp-content/plugins/wordpress-seo/css/main-sitemap.xsl"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 	<sitemap>
-		<loc>http://gtbabel.local.vielhuber.de/en/post-sitemap.xml</loc>
+		<loc>http://gtbabel.vielhuber.dev/en/post-sitemap.xml</loc>
 		<lastmod>2020-10-09T15:50:30+00:00</lastmod>
 	</sitemap>
 	<sitemap>
-		<loc>http://gtbabel.local.vielhuber.de/en/page-sitemap.xml</loc>
+		<loc>http://gtbabel.vielhuber.dev/en/page-sitemap.xml</loc>
 		<lastmod>2020-09-26T20:18:48+00:00</lastmod>
 	</sitemap>
 	<sitemap>
-		<loc>http://gtbabel.local.vielhuber.de/en/category-sitemap.xml</loc>
+		<loc>http://gtbabel.vielhuber.dev/en/category-sitemap.xml</loc>
 		<lastmod>2020-10-09T15:50:30+00:00</lastmod>
 	</sitemap>
 </sitemapindex>

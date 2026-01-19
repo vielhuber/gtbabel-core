@@ -5,7 +5,10 @@ use vielhuber\excelhelper\excelhelper;
 
 class Excel
 {
-    function __construct(Data $data = null, Settings $settings = null)
+    public $data;
+    public $settings;
+
+    function __construct(?Data $data = null, ?Settings $settings = null)
     {
         $this->data = $data ?: new Data();
         $this->settings = $settings ?: new Settings();

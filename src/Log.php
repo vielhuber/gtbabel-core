@@ -3,7 +3,10 @@ namespace gtbabel\core;
 
 class Log
 {
-    function __construct(Utils $utils = null, Settings $settings = null)
+    public $utils;
+    public $settings;
+
+    function __construct(?Utils $utils = null, ?Settings $settings = null)
     {
         $this->utils = $utils ?: new Utils();
         $this->settings = $settings ?: new Settings();
@@ -31,7 +34,9 @@ class Log
 
     function generalLogReset()
     {
-        @unlink($this->generalLogFilename());
+        if (file_exists($this->generalLogFilename())) {
+            unlink($this->generalLogFilename());
+        }
     }
 
     function generalLog(...$msg)

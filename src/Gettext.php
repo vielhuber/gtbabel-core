@@ -9,7 +9,10 @@ use Gettext\Loader\PoLoader;
 
 class Gettext
 {
-    function __construct(Data $data = null, Settings $settings = null)
+    public $data;
+    public $settings;
+
+    function __construct(?Data $data = null, ?Settings $settings = null)
     {
         $this->data = $data ?: new Data();
         $this->settings = $settings ?: new Settings();
@@ -47,7 +50,10 @@ class Gettext
                     if ($lng_source__value === $lng_target__value) {
                         continue;
                     }
-                    if (@$translations__value[$lng_target__value] == '') {
+                    if (
+                        !isset($translations__value[$lng_target__value]) ||
+                        @$translations__value[$lng_target__value] == ''
+                    ) {
                         continue;
                     }
                     $translation = Translation::create(

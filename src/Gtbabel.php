@@ -6,18 +6,30 @@ class Gtbabel
     public $configured = false;
     public $started = false;
 
+    public $utils;
+    public $settings;
+    public $log;
+    public $tags;
+    public $host;
+    public $data;
+    public $grabber;
+    public $domfactory;
+    public $router;
+    public $gettext;
+    public $excel;
+
     function __construct(
-        Utils $utils = null,
-        Settings $settings = null,
-        Log $log = null,
-        Tags $tags = null,
-        Host $host = null,
-        Data $data = null,
-        Grabber $grabber = null,
-        DomFactory $domfactory = null,
-        Router $router = null,
-        Gettext $gettext = null,
-        Excel $excel = null
+        ?Utils $utils = null,
+        ?Settings $settings = null,
+        ?Log $log = null,
+        ?Tags $tags = null,
+        ?Host $host = null,
+        ?Data $data = null,
+        ?Grabber $grabber = null,
+        ?DomFactory $domfactory = null,
+        ?Router $router = null,
+        ?Gettext $gettext = null,
+        ?Excel $excel = null
     ) {
         $this->utils = $utils ?: new Utils();
         $this->settings = $settings ?: new Settings($this->utils);
@@ -54,7 +66,7 @@ class Gtbabel
         }
         $this->detectDomChangesBackend();
         $this->frontendEditorBackend();
-        if ($this->utils->isCli()) {
+        if ($this->utils->isCli() && !$this->utils->isPhpUnit()) {
             return;
         }
         if ($this->host->contentTranslationIsDisabledForCurrentUrl()) {
@@ -86,7 +98,7 @@ class Gtbabel
         if ($this->started === false) {
             return;
         }
-        if ($this->utils->isCli()) {
+        if ($this->utils->isCli() && !$this->utils->isPhpUnit()) {
             return;
         }
         if ($this->host->contentTranslationIsDisabledForCurrentUrl()) {
@@ -123,8 +135,13 @@ class Gtbabel
         $this->log->generalLogReset();
     }
 
-    function translate($str, $lng_target = null, $lng_source = null, $context = null, $auto_add_translations = null)
-    {
+    function translate(
+        $str,
+        ?string $lng_target = null,
+        ?string $lng_source = null,
+        ?string $context = null,
+        ?bool $auto_add_translations = null
+    ) {
         if ($this->configured === false) {
             $this->config();
         }
@@ -197,6 +214,7 @@ class Gtbabel
         $time = $this->utils->getCurrentTime();
         $content = $this->domfactory->modifyContentFactory($content, 'tokenize');
         $this->data->saveCacheToDatabase();
+
         $data = $this->data->discoveryLogGetAfter($time, null, true);
         $this->reset();
         $this->utils->rrmdir($tmp_folder);
@@ -325,5 +343,10 @@ class Gtbabel
             ]);
             die();
         }
+    }
+
+    function __destruct()
+    {
+        $this->stop();
     }
 }

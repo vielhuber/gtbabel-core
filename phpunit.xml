@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     bootstrap="vendor/autoload.php"
     colors="true"
-    verbose="true"
-    stopOnFailure="false"
+    stopOnFailure="true"
     backupGlobals="true"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+    cacheDirectory=".phpunit.cache"
 >
-    <testsuites>
-        <testsuite
-            name="testsuite"
-        >
-            <directory>tests/phpunit</directory>
-        </testsuite>
-    </testsuites>
-    <php>
-        <ini name="display_errors" value="On" />
-        <ini name="display_startup_errors" value="On" />
-        <server name="HTTPS" value="off" />
-        <server name="HTTP_HOST" value="gtbabel.local.vielhuber.de" />
-        <server name="REQUEST_URI" value="/en/" />
-    </php>
+  <testsuites>
+    <testsuite name="testsuite">
+      <directory>tests/phpunit</directory>
+    </testsuite>
+  </testsuites>
+  <php>
+    <ini name="display_errors" value="On"/>
+    <ini name="display_startup_errors" value="On"/>
+    <server name="HTTPS" value="off"/>
+    <server name="HTTP_HOST" value="gtbabel.vielhuber.dev"/>
+    <server name="REQUEST_URI" value="/en/"/>
+  </php>
 </phpunit>

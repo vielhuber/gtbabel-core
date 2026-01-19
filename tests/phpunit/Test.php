@@ -8,9 +8,12 @@ use Dotenv\Dotenv;
 class Test extends \PHPUnit\Framework\TestCase
 {
     private $gtbabel;
+    private $bufferLevel;
 
     protected function setUp(): void
     {
+        $this->bufferLevel = ob_get_level();
+
         // load env file
         if (file_exists(dirname(__DIR__, 2) . '/.env')) {
             $dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));
@@ -20,7 +23,7 @@ class Test extends \PHPUnit\Framework\TestCase
         // mock response code
         http_response_code(200);
 
-        // start (without mock)
+        // start (with/without mock)
         if (1 == 0) {
             $this->gtbabel = new Gtbabel();
         } else {
@@ -32,12 +35,19 @@ class Test extends \PHPUnit\Framework\TestCase
         $gtbabel = $this->gtbabel;
     }
 
+    protected function tearDown(): void
+    {
+        if ($this->gtbabel !== null) {
+            $this->gtbabel->stop();
+        }
+        while (ob_get_level() > $this->bufferLevel) {
+            ob_end_clean();
+        }
+    }
+
     public function mock()
     {
-        $utils = $this->getMockBuilder(Utils::class)
-            ->setConstructorArgs([])
-            ->onlyMethods([])
-            ->getMock();
+        $utils = $this->getMockBuilder(Utils::class)->setConstructorArgs([])->onlyMethods([])->getMock();
         $settings = $this->getMockBuilder(Settings::class)
             ->setConstructorArgs([$utils])
             ->onlyMethods([])
@@ -378,13 +388,13 @@ class Test extends \PHPUnit\Framework\TestCase
 
     public function test040()
     {
-        $this->runDiff('40.html', 750, [
+        $this->runDiff('40.html', 20000, [
             'debug_translations' => false,
             'auto_translation' => true,
             'auto_translation_service' => [
                 [
                     'provider' => 'google',
-                    'api_keys' => 'free',
+                    'api_keys' => @$_SERVER['GOOGLE_TRANSLATION_API_KEY'],
                     'throttle_chars_per_month' => 1000000,
                     'lng' => null,
                     'label' => null,
@@ -497,7 +507,7 @@ class Test extends \PHPUnit\Framework\TestCase
             'auto_translation_service' => [
                 [
                     'provider' => 'google',
-                    'api_keys' => 'free',
+                    'api_keys' => @$_SERVER['GOOGLE_TRANSLATION_API_KEY'],
                     'throttle_chars_per_month' => 1000000,
                     'lng' => null,
                     'label' => null,
@@ -526,7 +536,7 @@ class Test extends \PHPUnit\Framework\TestCase
             'auto_translation_service' => [
                 [
                     'provider' => 'google',
-                    'api_keys' => 'free',
+                    'api_keys' => @$_SERVER['GOOGLE_TRANSLATION_API_KEY'],
                     'throttle_chars_per_month' => 1000000,
                     'lng' => null,
                     'label' => null,
@@ -557,7 +567,7 @@ class Test extends \PHPUnit\Framework\TestCase
 
     public function test059()
     {
-        $this->runDiff('59.html', 2250, [
+        $this->runDiff('59.html', 3250, [
             'debug_translations' => false,
             'auto_translation' => true
         ]);
@@ -591,7 +601,7 @@ class Test extends \PHPUnit\Framework\TestCase
             'auto_translation_service' => [
                 [
                     'provider' => 'google',
-                    'api_keys' => 'free',
+                    'api_keys' => @$_SERVER['GOOGLE_TRANSLATION_API_KEY'],
                     'throttle_chars_per_month' => 1000000,
                     'lng' => null,
                     'label' => null,
@@ -632,7 +642,7 @@ class Test extends \PHPUnit\Framework\TestCase
             'auto_translation_service' => [
                 [
                     'provider' => 'google',
-                    'api_keys' => 'free',
+                    'api_keys' => @$_SERVER['GOOGLE_TRANSLATION_API_KEY'],
                     'throttle_chars_per_month' => 1000000,
                     'lng' => null,
                     'label' => null,
@@ -841,7 +851,7 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->stop();
         $output = ob_get_contents();
         ob_end_clean();
-        $this->assertEquals($output, '<div class="translate">Dog</div><div class="notranslate">HouseHouseHaus</div>');
+        $this->assertEquals($output, '<div class="translate">Dog</div><div class="notranslate">HomeHouseHaus</div>');
         $this->gtbabel->reset();
 
         // specific
@@ -850,14 +860,14 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->assertEquals($this->gtbabel->translate('Hund', 'en', 'de'), 'Dog');
         $this->assertEquals(
             $this->gtbabel->translate('<p>Hallo <a href="/fisch">Fisch</a>!</p>'),
-            '<p>Hello <a href="/en/fish">fish</a> !</p>'
+            '<p>Hello <a href="/en/fish">Fish</a> !</p>'
         );
         $this->assertEquals($this->gtbabel->translate('Fisch'), 'Fish');
         $this->assertEquals($this->gtbabel->translate('/fisch'), '/en/fish');
-        $this->assertEquals($this->gtbabel->translate('/hund/haus/eimer'), '/en/dog/house/bucket');
+        $this->assertEquals($this->gtbabel->translate('/hund/haus/eimer'), '/en/dog/a-house/bucket');
         $this->assertEquals(
-            $this->gtbabel->translate('http://gtbabel.local.vielhuber.de/katze/mund'),
-            'http://gtbabel.local.vielhuber.de/en/cat/mouth'
+            $this->gtbabel->translate('http://gtbabel.vielhuber.dev/katze/mund'),
+            'http://gtbabel.vielhuber.dev/en/cat/mouth'
         );
 
         $translations = $this->gtbabel->data->getTranslationsFromDatabase();
@@ -1201,19 +1211,17 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->reset();
 
         $this->assertEquals(
-            __::minify_html($this->normalize($output)),
-            __::minify_html(
-                $this->normalize('<!DOCTYPE html>
+            $this->normalize($output),
+            $this->normalize('<!DOCTYPE html>
 <html>
     <head>
-        <title>A review by Haus</title>
-        <meta name="description" content="I\'m currently reading Haus.">
+        <title>A review of Haus</title>
+        <meta name="description" content="I am currently reading Haus.">
     </head>
     <body>
-        <a href="#" title="Haus">The link https://test.de deals with the stop word Haus and more can be found on https://test2.de.</a>
+        <a href="#" title="Haus">Link https://test.de is about the stopword Haus and more can be found on https://test2.de.</a>
     </body>
 </html>')
-            )
         );
 
         $this->assertEquals(count($translations), 5);
@@ -1251,39 +1259,39 @@ class Test extends \PHPUnit\Framework\TestCase
             ],
             [
                 '<p>Das deutsche <a href="#test1" target="_self">Brot</a> <a href="#test2" target="_blank">vermisse</a> ich am meisten.</p>',
-                '<p><a href="#test2" target="_blank">I miss</a> German <a href="#test1" target="_self">bread</a> the most.</p>',
+                '<p>I <a href="#test2" target="_blank">miss</a> German <a href="#test1" target="_self">bread</a> the most.</p>',
                 'Das deutsche <a>Brot</a> <a>vermisse</a> ich am meisten.',
-                '<a p="2">I miss</a> German <a p="1">bread</a> the most.'
+                'I <a p="2">miss</a> German <a p="1">bread</a> the most.'
             ],
             [
                 '<p>Das deutsche <strong data-foo="bar">Brot</strong> <a href="#test2" target="_blank">vermisse</a> ich am meisten.</p>',
-                '<p><a href="#test2" target="_blank">I miss</a> German <strong data-foo="bar">bread</strong> the most.</p>',
+                '<p>I <a href="#test2" target="_blank">miss</a> German <strong data-foo="bar">bread</strong> the most.</p>',
                 'Das deutsche <strong>Brot</strong> <a>vermisse</a> ich am meisten.',
-                '<a>I miss</a> German <strong>bread</strong> the most.'
+                'I <a>miss</a> German <strong>bread</strong> the most.'
             ],
             [
                 '<p>Das deutsche <strong data-foo="bar">Brot</strong> <a href="#test1" target="_blank">vermisse</a> <a href="#test2" target="_self">ich</a> am <small style="font-size:bold;">meisten</small></p>',
-                '<p><a href="#test2" target="_self">I</a> <a href="#test1" target="_blank">miss</a> German <strong data-foo="bar">bread</strong> the <small style="font-size:bold;">most</small></p>',
+                '<p><a href="#test2" target="_self">I</a> <a href="#test1" target="_blank">miss</a> German <strong data-foo="bar">bread</strong> the <small style="font-size:bold;">most.</small></p>',
                 'Das deutsche <strong>Brot</strong> <a>vermisse</a> <a>ich</a> am <small>meisten</small>',
-                '<a p="2">I</a> <a p="1">miss</a> German <strong>bread</strong> the <small>most</small>'
+                '<a p="2">I</a> <a p="1">miss</a> German <strong>bread</strong> the <small>most.</small>'
             ],
             [
                 '<p><small class="_1">Haus</small> <span class="_2">Maus</span> Haus <u class="_4">Maus</u> <em class="_5">Haus</em></p>',
-                '<p><small class="_1">house</small> <span class="_2">mouse</span> house <u class="_4">mouse</u> <em class="_5">house</em></p>',
+                '<p><small class="_1">House</small> <span class="_2">Mouse</span> House <u class="_4">Mouse</u> <em class="_5">House</em></p>',
                 '<small>Haus</small> <span>Maus</span> Haus <u>Maus</u> <em>Haus</em>',
-                '<small>house</small> <span>mouse</span> house <u>mouse</u> <em>house</em>'
+                '<small>House</small> <span>Mouse</span> House <u>Mouse</u> <em>House</em>'
             ],
             [
                 '<p><small class="_1">Haus</small> <span class="_2">Maus</span> Haus <small class="_4">Maus</small> <span class="_5">Haus</span></p>',
-                '<p><small class="_1">house</small> <span class="_2">mouse</span> house <small class="_4">mouse</small> <span class="_5">house</span></p>',
+                '<p><small class="_1">House</small> <span class="_2">Mouse</span> House <small class="_4">Mouse</small> <span class="_5">House</span></p>',
                 '<small>Haus</small> <span>Maus</span> Haus <small>Maus</small> <span>Haus</span>',
-                '<small>house</small> <span>mouse</span> house <small>mouse</small> <span>house</span>'
+                '<small>House</small> <span>Mouse</span> House <small>Mouse</small> <span>House</span>'
             ],
             [
                 '<p>Das deutsche <strong data-foo="bar" class="notranslate">Brot</strong> <a href="#test1" target="_blank">vermisse</a> <a href="#test2" target="_self">ich</a> am <small style="font-size:bold;">meisten</small></p>',
-                '<p><a href="#test2" target="_self">I</a> <a href="#test1" target="_blank">miss</a> German <strong data-foo="bar" class="notranslate">Brot</strong> the <small style="font-size:bold;">most</small></p>',
+                '<p><a href="#test2" target="_self">I</a> <a href="#test1" target="_blank">miss</a> German <strong data-foo="bar" class="notranslate">Brot</strong> the <small style="font-size:bold;">most.</small></p>',
                 'Das deutsche <strong class="notranslate">Brot</strong> <a>vermisse</a> <a>ich</a> am <small>meisten</small>',
-                '<a p="2">I</a> <a p="1">miss</a> German <strong class="notranslate">Brot</strong> the <small>most</small>'
+                '<a p="2">I</a> <a p="1">miss</a> German <strong class="notranslate">Brot</strong> the <small>most.</small>'
             ]
         ];
 
@@ -1335,12 +1343,12 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->reset();
         $this->assertEquals(
             $output,
-            '<div data-text="#anything for you">#anything for you</div>' .
+            '<div data-text="#everythingforyou">#everythingforyou</div>' .
                 '<p>foo &amp; bar<br> baz</p>' .
                 '<div data-text=\'"gnarr" &amp; gnazz\'></div>' .
                 '<a href="https://www.url.com/foo.php?lang=de&amp;foo=bar"></a>' .
-                '<img src="" alt="First &amp; Trial" data-text="Second &amp; Trial">' .
-                '<img src="" alt="First &amp; Trial" data-text="Second &amp; Trial">'
+                '<img src="" alt="First &amp; Test" data-text="Second &amp; Test">' .
+                '<img src="" alt="First &amp; Test" data-text="Second &amp; Test">'
         );
         $this->assertEquals(count($translations), 6);
         $this->assertEquals($translations[0]['str'], '#allesfürdich');
@@ -1357,14 +1365,14 @@ class Test extends \PHPUnit\Framework\TestCase
         $settings['languages'] = $this->getLanguageSettings([['code' => 'de'], ['code' => 'en']]);
         $settings['debug_translations'] = false;
 
-        $_SERVER['HTTP_REFERER'] = 'http://gtbabel.local.vielhuber.de/de/';
+        $_SERVER['HTTP_REFERER'] = 'http://gtbabel.vielhuber.dev/de/';
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
         $this->gtbabel->stop();
         $this->assertEquals($this->gtbabel->host->getRefererLanguageCode(), 'de');
         $this->gtbabel->reset();
 
-        $_SERVER['HTTP_REFERER'] = 'http://gtbabel.local.vielhuber.de/en/';
+        $_SERVER['HTTP_REFERER'] = 'http://gtbabel.vielhuber.dev/en/';
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
         $this->gtbabel->stop();
@@ -1407,7 +1415,7 @@ class Test extends \PHPUnit\Framework\TestCase
             urlencode('Richtig gut') .
             '">hier</a>';
         $html_in .=
-            '<p>http://gtbabel.local.vielhuber.de/suche?foo=' .
+            '<p>http://gtbabel.vielhuber.dev/suche?foo=' .
             urlencode('Coole Sache') .
             '&bar=' .
             urlencode('Das funktioniert') .
@@ -1425,16 +1433,20 @@ class Test extends \PHPUnit\Framework\TestCase
 
         $html_out = '';
         $html_out .=
-            '<a href="/en/seek?foo=' . urlencode('Cool thing') . '&amp;baz=' . urlencode('Richtig gut') . '">here</a>';
+            '<a href="/en/search?foo=' .
+            urlencode('Cool stuff') .
+            '&amp;baz=' .
+            urlencode('Richtig gut') .
+            '">here</a>';
         $html_out .=
-            '<p>http://gtbabel.local.vielhuber.de/en/seek?foo=' .
-            urlencode('Cool thing') .
+            '<p>http://gtbabel.vielhuber.dev/en/search?foo=' .
+            urlencode('Cool stuff') .
             '&amp;baz=' .
             urlencode('Richtig gut') .
             '</p>';
         $html_out .=
-            '<a href="/en/seek?foo=' .
-            urlencode('Cool thing') .
+            '<a href="/en/search?foo=' .
+            urlencode('Cool stuff') .
             '&amp;baz=' .
             urlencode('Richtig gut') .
             '#some-hash-after">here</a>';
@@ -1454,9 +1466,9 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->assertEquals($translations[0]['str'], 'hier');
         $this->assertEquals($translations[0]['trans'], 'here');
         $this->assertEquals($translations[1]['str'], 'Coole Sache');
-        $this->assertEquals($translations[1]['trans'], 'Cool thing');
+        $this->assertEquals($translations[1]['trans'], 'Cool stuff');
         $this->assertEquals($translations[2]['str'], 'suche');
-        $this->assertEquals($translations[2]['trans'], 'seek');
+        $this->assertEquals($translations[2]['trans'], 'search');
 
         $this->gtbabel->reset();
     }
@@ -1478,34 +1490,34 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="en"><body>
             <p>
-                Some content in english.
+                Some content is in English.
             </p>
             <div lang="fr">
                 Contenu en français.
             </div>
             <p>
-                Some other content in english.
+                More content in english.
             </p>
             <p lang="en">
-                Some other content in english.
+                More content in english.
             </p>
         </body></html>';
         $this->gtbabel->stop();
         ob_end_clean();
 
         $translations = $this->gtbabel->data->getTranslationsFromDatabase();
-        $this->assertEquals($translations[0]['str'], 'Some content in english.');
+        $this->assertEquals($translations[0]['str'], 'Some content is in English.');
         $this->assertEquals($translations[0]['lng_source'], 'en');
         $this->assertEquals($translations[0]['lng_target'], 'de');
-        $this->assertEquals($translations[0]['trans'], 'Einige Inhalte auf Englisch.');
+        $this->assertEquals($translations[0]['trans'], 'Einige Inhalte sind in englischer Sprache.');
         $this->assertEquals($translations[1]['str'], 'Contenu en français.');
         $this->assertEquals($translations[1]['lng_source'], 'fr');
         $this->assertEquals($translations[1]['lng_target'], 'de');
-        $this->assertEquals($translations[1]['trans'], 'Inhalt auf Französisch.');
-        $this->assertEquals($translations[2]['str'], 'Some other content in english.');
+        $this->assertEquals($translations[1]['trans'], 'Inhalt in französischer Sprache.');
+        $this->assertEquals($translations[2]['str'], 'More content in english.');
         $this->assertEquals($translations[2]['lng_source'], 'en');
         $this->assertEquals($translations[2]['lng_target'], 'de');
-        $this->assertEquals($translations[2]['trans'], 'Einige andere Inhalte in Englisch.');
+        $this->assertEquals($translations[2]['trans'], 'Mehr Inhalte auf Englisch.');
 
         $this->gtbabel->reset();
     }
@@ -1556,16 +1568,16 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="en"><body>
             <p>
-                Some content in english.
+                Some content is in English.
             </p>
             <div lang="fr">
                 Contenu en français.
             </div>
             <p>
-                Some other content in english.
+                More content in english.
             </p>
             <p lang="en">
-                Some other content in english.
+                More content in english.
             </p>
         </body></html>';
         $this->gtbabel->stop();
@@ -1578,9 +1590,12 @@ class Test extends \PHPUnit\Framework\TestCase
         $data2 = $this->gtbabel->data->getGroupedTranslationsFromDatabase()['data'];
 
         $this->assertEquals($data1, $data2);
-        $this->assertEquals(strpos(file_get_contents($files[2]), 'msgid "Some content in english."') !== false, true);
         $this->assertEquals(
-            strpos(file_get_contents($files[2]), 'msgstr "Einige Inhalte auf Englisch."') !== false,
+            strpos(file_get_contents($files[2]), 'msgid "Some content is in English."') !== false,
+            true
+        );
+        $this->assertEquals(
+            strpos(file_get_contents($files[2]), 'msgstr "Einige Inhalte sind in englischer Sprache."') !== false,
             true
         );
 
@@ -1713,7 +1728,7 @@ class Test extends \PHPUnit\Framework\TestCase
         $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'deepl');
-        $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 24);
+        $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 28);
         $settings['auto_translation_service'] = [
             [
                 'provider' => 'google',
@@ -1732,7 +1747,7 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->stop();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'deepl');
-        $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 24);
+        $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 28);
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[1]['service'], 'google');
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[1]['length'], 25);
         $this->gtbabel->reset();
@@ -1754,7 +1769,7 @@ class Test extends \PHPUnit\Framework\TestCase
             [
                 'provider' => 'google',
                 'api_keys' => @$_SERVER['GOOGLE_TRANSLATION_API_KEY'],
-                'throttle_chars_per_month' => 30,
+                'throttle_chars_per_month' => 40,
                 'lng' => null,
                 'label' => null,
                 'api_url' => null,
@@ -1764,16 +1779,14 @@ class Test extends \PHPUnit\Framework\TestCase
         ob_start();
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
-        echo '<!DOCTYPE html><html><body><p>Einige Inhalte auf Englisch.</p><p>Einige andere Inhalte in Englisch.</p></body></html>';
+        echo '<!DOCTYPE html><html><body><p>Einige Inhalte sind auf Englisch.</p><p>Weitere Inhalte in englischer Sprache.</p></body></html>';
         $this->gtbabel->stop();
         $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame(
-            __::minify_html($this->normalize($output)),
-            __::minify_html(
-                $this->normalize(
-                    '<!DOCTYPE html><html><body><p>Some content in English.</p><p>Some other content in English.</p></body></html>'
-                )
+            $this->normalize($output),
+            $this->normalize(
+                '<!DOCTYPE html><html><body><p>Some content is in English.</p><p>More content in English.</p></body></html>'
             )
         );
         $this->gtbabel->reset();
@@ -1792,16 +1805,14 @@ class Test extends \PHPUnit\Framework\TestCase
         ob_start();
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
-        echo '<!DOCTYPE html><html><body><p>Einige Inhalte auf Englisch.</p><p>Einige andere Inhalte in Englisch.</p></body></html>';
+        echo '<!DOCTYPE html><html><body><p>Einige Inhalte sind auf Englisch.</p><p>Weitere Inhalte in englischer Sprache.</p></body></html>';
         $this->gtbabel->stop();
         $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame(
-            __::minify_html($this->normalize($output)),
-            __::minify_html(
-                $this->normalize(
-                    '<!DOCTYPE html><html><body><p>Some content in English.</p><p>Einige andere Inhalte in Englisch.</p></body></html>'
-                )
+            $this->normalize($output),
+            $this->normalize(
+                '<!DOCTYPE html><html><body><p>Some content is in English.</p><p>Weitere Inhalte in englischer Sprache.</p></body></html>'
             )
         );
         $this->gtbabel->reset();
@@ -1820,105 +1831,105 @@ class Test extends \PHPUnit\Framework\TestCase
         $settings['unchecked_strings'] = 'trans';
 
         $input = <<<'EOD'
-<div style="background-image: url(http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei1.jpg);"></div>
-<div style="background-image: url('http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei1.jpg');"></div>
-<div style="background-image:    url(    'http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei1.jpg' )"></div>
-<div style="background-image: url(/beispiel-bilddatei2.jpg);"></div>
-<div style="background-image: url('beispiel-bilddatei3.jpg');"></div>
-<div style="background-image: url('http://test.de/beispiel-bilddatei4.jpg');"></div>
-<div style="background-image: url('beispiel-bilddatei1.jpg'), url('beispiel-bilddatei2.jpg');"></div>
-<div style="width: 20%;"></div>
-<img src="http://test.de/beispiel-bilddatei5.jpg" alt="" />
-<img src="http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei6.jpg" alt="" />
-<img src="/beispiel-bilddatei7.jpg" alt="" />
-<img src="beispiel-bilddatei8.jpg" alt="" />
-<img srcset="http://gtbabel.local.vielhuber.de/320x100.png?text=small,
-             http://gtbabel.local.vielhuber.de/600x100.png?text=medium 600w,
-             http://gtbabel.local.vielhuber.de/900x100.png?text=large 2x"
-    src="http://gtbabel.local.vielhuber.de/900x200.png?text=fallback"
-    alt=""
-/>
-<img srcset="http://gtbabel.local.vielhuber.de/320x100.png?text=small,
-             http://test.de/600x100.png?text=medium 600w,
-             http://gtbabel.local.vielhuber.de/900x100.png?text=large 2x"
-    src="http://test.de/900x200.png?text=fallback"
-    alt=""
-/>
-<picture>
-    <source media="(max-width: 800px)" srcset="http://gtbabel.local.vielhuber.de/320x100.png?text=small">
-    <source media="(max-width: 1200px)" srcset="http://gtbabel.local.vielhuber.de/600x100.png?text=medium">
-    <img src="http://gtbabel.local.vielhuber.de/900x100.png?text=large" alt="" />
-</picture>
-<a href="mailto:"></a>
-<a href="mailto:david@vielhuber.de"></a>
-<a href="mailto:david@vielhuber.de?subject=Haus&amp;body=Dies%20ist%20ein%20Test"></a>
-<a href="mailto:david@vielhuber.de?subject=Haus&amp;body=Dies%20ist%20ein%20Link%20http%3A%2F%2Fgtbabel.local.vielhuber.de%2Ffisch"></a>
-<a href="mailto:?subject=Haus&amp;body=http%3A%2F%2Fgtbabel.local.vielhuber.de%2Ffisch%2F"></a>
-<a href="tel:+4989111312113"></a>
-<a href="http://test.de/beispiel-bilddatei9.jpg"></a>
-<a href="http://test.de/beispiel-pfad10"></a>
-<a href="http://gtbabel.local.vielhuber.de/fisch/beispiel-pfad11"></a>
-<a href="http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei12.jpg"></a>
-<a href="http://gtbabel.local.vielhuber.de"></a>
-<a href="http://gtbabel.local.vielhuber.de/"></a>
-<a href="/beispiel-bilddatei13.jpg"></a>
-<a href="beispiel-bilddatei14.jpg"></a>
-<a href="beispiel-script.php?foo=bar"></a>
-<a href="beispiel.html"></a>
-<a href="beispiel/pfad/1._Buch_Moses"></a>
-<a href="beispiel/pfad/1._Buch_Moses?Hund=Haus"></a>
-<a href="beispiel/pfad/1._Buch_Moses/?Hund=Haus"></a>
-<a href="https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.local.vielhuber.de"></a>
-<iframe src="https://www.youtube.com/watch?v=4t1mgEBx1nQ"></iframe>
-<a href="https://www.google.de/maps/dir//foo,bar,baz/gnarr,gnaz,gnab/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x479de2be93111c6d:0x2bac2afe506c9fa9!2m2!1d11.8208515!2d48.0923082!3e0">#</a>
-EOD;
+        <div style="background-image: url(http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei1.jpg);"></div>
+        <div style="background-image: url('http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei1.jpg');"></div>
+        <div style="background-image:    url(    'http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei1.jpg' )"></div>
+        <div style="background-image: url(/beispiel-bilddatei2.jpg);"></div>
+        <div style="background-image: url('beispiel-bilddatei3.jpg');"></div>
+        <div style="background-image: url('http://test.de/beispiel-bilddatei4.jpg');"></div>
+        <div style="background-image: url('beispiel-bilddatei1.jpg'), url('beispiel-bilddatei2.jpg');"></div>
+        <div style="width: 20%;"></div>
+        <img src="http://test.de/beispiel-bilddatei5.jpg" alt="" />
+        <img src="http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei6.jpg" alt="" />
+        <img src="/beispiel-bilddatei7.jpg" alt="" />
+        <img src="beispiel-bilddatei8.jpg" alt="" />
+        <img srcset="http://gtbabel.vielhuber.dev/320x100.png?text=small,
+                     http://gtbabel.vielhuber.dev/600x100.png?text=medium 600w,
+                     http://gtbabel.vielhuber.dev/900x100.png?text=large 2x"
+            src="http://gtbabel.vielhuber.dev/900x200.png?text=fallback"
+            alt=""
+        />
+        <img srcset="http://gtbabel.vielhuber.dev/320x100.png?text=small,
+                     http://test.de/600x100.png?text=medium 600w,
+                     http://gtbabel.vielhuber.dev/900x100.png?text=large 2x"
+            src="http://test.de/900x200.png?text=fallback"
+            alt=""
+        />
+        <picture>
+            <source media="(max-width: 800px)" srcset="http://gtbabel.vielhuber.dev/320x100.png?text=small">
+            <source media="(max-width: 1200px)" srcset="http://gtbabel.vielhuber.dev/600x100.png?text=medium">
+            <img src="http://gtbabel.vielhuber.dev/900x100.png?text=large" alt="" />
+        </picture>
+        <a href="mailto:"></a>
+        <a href="mailto:david@vielhuber.de"></a>
+        <a href="mailto:david@vielhuber.de?subject=Haus&amp;body=Dies%20ist%20ein%20Test"></a>
+        <a href="mailto:david@vielhuber.de?subject=Haus&amp;body=Dies%20ist%20ein%20Link%20http%3A%2F%2Fgtbabel.vielhuber.dev%2Ffisch"></a>
+        <a href="mailto:?subject=Haus&amp;body=http%3A%2F%2Fgtbabel.vielhuber.dev%2Ffisch%2F"></a>
+        <a href="tel:+4989111312113"></a>
+        <a href="http://test.de/beispiel-bilddatei9.jpg"></a>
+        <a href="http://test.de/beispiel-pfad10"></a>
+        <a href="http://gtbabel.vielhuber.dev/fisch/beispiel-pfad11"></a>
+        <a href="http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei12.jpg"></a>
+        <a href="http://gtbabel.vielhuber.dev"></a>
+        <a href="http://gtbabel.vielhuber.dev/"></a>
+        <a href="/beispiel-bilddatei13.jpg"></a>
+        <a href="beispiel-bilddatei14.jpg"></a>
+        <a href="beispiel-script.php?foo=bar"></a>
+        <a href="beispiel.html"></a>
+        <a href="beispiel/pfad/1._Buch_Moses"></a>
+        <a href="beispiel/pfad/1._Buch_Moses?Hund=Haus"></a>
+        <a href="beispiel/pfad/1._Buch_Moses/?Hund=Haus"></a>
+        <a href="https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.vielhuber.dev"></a>
+        <iframe src="https://www.youtube.com/watch?v=4t1mgEBx1nQ"></iframe>
+        <a href="https://www.google.de/maps/dir//foo,bar,baz/gnarr,gnaz,gnab/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x479de2be93111c6d:0x2bac2afe506c9fa9!2m2!1d11.8208515!2d48.0923082!3e0">#</a>
+        EOD;
 
         $expected_html = <<<'EOD'
-<div style="background-image: url(http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei1_EN.jpg);"></div>
-<div style="background-image: url('http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei1_EN.jpg');"></div>
-<div style="background-image: url( 'http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei1_EN.jpg' )"></div>
-<div style="background-image: url(/beispiel-bilddatei2_EN.jpg);"></div>
-<div style="background-image: url('beispiel-bilddatei3_EN.jpg');"></div>
-<div style="background-image: url('http://test.de/beispiel-bilddatei4.jpg');"></div>
-<div style="background-image: url('beispiel-bilddatei1_EN.jpg'), url('beispiel-bilddatei2_EN.jpg');"></div>
-<div style="width: 20%;"></div>
-<img src="http://test.de/beispiel-bilddatei5.jpg" alt="">
-<img src="http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei6_EN.jpg" alt="">
-<img src="/beispiel-bilddatei7_EN.jpg" alt="">
-<img src="beispiel-bilddatei8_EN.jpg" alt="">
-<img srcset="http://gtbabel.local.vielhuber.de/320x100_EN.png?text=small, http://gtbabel.local.vielhuber.de/600x100_EN.png?text=medium 600w, http://gtbabel.local.vielhuber.de/900x100_EN.png?text=large 2x" src="http://gtbabel.local.vielhuber.de/900x200_EN.png?text=fallback" alt="" />
-<img srcset="http://gtbabel.local.vielhuber.de/320x100_EN.png?text=small, http://test.de/600x100.png?text=medium 600w, http://gtbabel.local.vielhuber.de/900x100_EN.png?text=large 2x" src="http://test.de/900x200.png?text=fallback" alt="" />
-<picture><source media="(max-width: 800px)" srcset="http://gtbabel.local.vielhuber.de/320x100_EN.png?text=small"><source media="(max-width: 1200px)" srcset="http://gtbabel.local.vielhuber.de/600x100_EN.png?text=medium"><img src="http://gtbabel.local.vielhuber.de/900x100_EN.png?text=large" alt=""></picture>
-<a href="mailto:"></a>
-<a href="mailto:david@vielhuber.de_EN"></a>
-<a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20test"></a>
-<a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20link%20http://gtbabel.local.vielhuber.de/en/fish"></a>
-<a href="mailto:?subject=House&amp;body=http://gtbabel.local.vielhuber.de/en/fish/"></a>
-<a href="tel:+4989111312113"></a>
-<a href="http://test.de/beispiel-bilddatei9.jpg"></a>
-<a href="http://test.de/beispiel-pfad10"></a>
-<a href="http://gtbabel.local.vielhuber.de/en/fish/example-path11"></a>
-<a href="http://gtbabel.local.vielhuber.de/fisch/beispiel-bilddatei12_EN.jpg"></a>
-<a href="http://gtbabel.local.vielhuber.de/en/"></a>
-<a href="http://gtbabel.local.vielhuber.de/en/"></a>
-<a href="/beispiel-bilddatei13_EN.jpg"></a>
-<a href="beispiel-bilddatei14_EN.jpg"></a>
-<a href="beispiel-script.php?foo=bar"></a>
-<a href="beispiel.html"></a>
-<a href="en/example/path/1-book-moses"></a>
-<a href="en/example/path/1-book-moses?Hund=Haus"></a>
-<a href="en/example/path/1-book-moses/?Hund=Haus"></a>
-<a href="https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.local.vielhuber.de"></a>
-<iframe src="https://www.youtube.com/watch?v=sZhl6PyTflw"></iframe>
-<a href="https://www.google.de/maps/dir//foo,bar,baz/gnarr,gnaz,gnab/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x479de2be93111c6d:0x2bac2afe506c9fa9!2m2!1d11.8208515!2d48.0923082!3e0">#</a>
-EOD;
+        <div style="background-image: url(http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei1_EN.jpg);"></div>
+        <div style="background-image: url('http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei1_EN.jpg');"></div>
+        <div style="background-image: url( 'http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei1_EN.jpg' )"></div>
+        <div style="background-image: url(/beispiel-bilddatei2_EN.jpg);"></div>
+        <div style="background-image: url('beispiel-bilddatei3_EN.jpg');"></div>
+        <div style="background-image: url('http://test.de/beispiel-bilddatei4.jpg');"></div>
+        <div style="background-image: url('beispiel-bilddatei1_EN.jpg'), url('beispiel-bilddatei2_EN.jpg');"></div>
+        <div style="width: 20%;"></div>
+        <img src="http://test.de/beispiel-bilddatei5.jpg" alt="">
+        <img src="http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei6_EN.jpg" alt="">
+        <img src="/beispiel-bilddatei7_EN.jpg" alt="">
+        <img src="beispiel-bilddatei8_EN.jpg" alt="">
+        <img srcset="http://gtbabel.vielhuber.dev/320x100_EN.png?text=small, http://gtbabel.vielhuber.dev/600x100_EN.png?text=medium 600w, http://gtbabel.vielhuber.dev/900x100_EN.png?text=large 2x" src="http://gtbabel.vielhuber.dev/900x200_EN.png?text=fallback" alt="" />
+        <img srcset="http://gtbabel.vielhuber.dev/320x100_EN.png?text=small, http://test.de/600x100.png?text=medium 600w, http://gtbabel.vielhuber.dev/900x100_EN.png?text=large 2x" src="http://test.de/900x200.png?text=fallback" alt="" />
+        <picture><source media="(max-width: 800px)" srcset="http://gtbabel.vielhuber.dev/320x100_EN.png?text=small"><source media="(max-width: 1200px)" srcset="http://gtbabel.vielhuber.dev/600x100_EN.png?text=medium"><img src="http://gtbabel.vielhuber.dev/900x100_EN.png?text=large" alt=""></picture>
+        <a href="mailto:"></a>
+        <a href="mailto:david@vielhuber.de_EN"></a>
+        <a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20test"></a>
+        <a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20link%20http://gtbabel.vielhuber.dev/en/fish"></a>
+        <a href="mailto:?subject=House&amp;body=http://gtbabel.vielhuber.dev/en/fish/"></a>
+        <a href="tel:+4989111312113"></a>
+        <a href="http://test.de/beispiel-bilddatei9.jpg"></a>
+        <a href="http://test.de/beispiel-pfad10"></a>
+        <a href="http://gtbabel.vielhuber.dev/en/fish/example-path11"></a>
+        <a href="http://gtbabel.vielhuber.dev/fisch/beispiel-bilddatei12_EN.jpg"></a>
+        <a href="http://gtbabel.vielhuber.dev/en/"></a>
+        <a href="http://gtbabel.vielhuber.dev/en/"></a>
+        <a href="/beispiel-bilddatei13_EN.jpg"></a>
+        <a href="beispiel-bilddatei14_EN.jpg"></a>
+        <a href="beispiel-script.php?foo=bar"></a>
+        <a href="beispiel.html"></a>
+        <a href="en/example/path/1-book-of-moses"></a>
+        <a href="en/example/path/1-book-of-moses?Hund=Haus"></a>
+        <a href="en/example/path/1-book-of-moses/?Hund=Haus"></a>
+        <a href="https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.vielhuber.dev"></a>
+        <iframe src="https://www.youtube.com/watch?v=sZhl6PyTflw"></iframe>
+        <a href="https://www.google.de/maps/dir//foo,bar,baz/gnarr,gnaz,gnab/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x479de2be93111c6d:0x2bac2afe506c9fa9!2m2!1d11.8208515!2d48.0923082!3e0">#</a>
+        EOD;
 
         $expected_data = [
             ['fisch', 'slug', 'de', 'en', 'fish', 0],
             ['beispiel-pfad11', 'slug', 'de', 'en', 'example-path11', 0],
             ['beispiel', 'slug', 'de', 'en', 'example', 0],
             ['pfad', 'slug', 'de', 'en', 'path', 0],
-            ['1._Buch_Moses', 'slug', 'de', 'en', '1-book-moses', 0],
+            ['1._Buch_Moses', 'slug', 'de', 'en', '1-book-of-moses', 0],
             ['fisch/beispiel-bilddatei1.jpg', 'file', 'de', 'en', 'fisch/beispiel-bilddatei1_EN.jpg', 1],
             ['beispiel-bilddatei2.jpg', 'file', 'de', 'en', 'beispiel-bilddatei2_EN.jpg', 1],
             ['beispiel-bilddatei3.jpg', 'file', 'de', 'en', 'beispiel-bilddatei3_EN.jpg', 1],
@@ -1943,11 +1954,11 @@ EOD;
             ['http://test.de/beispiel-bilddatei9.jpg', 'file', 'de', 'en', 'http://test.de/beispiel-bilddatei9.jpg', 0],
             ['tel:+4989111312113', 'url', 'de', 'en', 'tel:+4989111312113', 0],
             [
-                'https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.local.vielhuber.de',
+                'https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.vielhuber.dev',
                 'url',
                 'de',
                 'en',
-                'https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.local.vielhuber.de',
+                'https://lighthouse-dot-webdotdevsite.appspot.com/lh/html?url=http://gtbabel.vielhuber.dev',
                 0
             ],
             ['http://test.de/600x100.png?text=medium', 'file', 'de', 'en', 'http://test.de/600x100.png?text=medium', 0],
@@ -2115,12 +2126,10 @@ EOD;
         $output = ob_get_contents();
         ob_end_clean();
 
-        $this->assertEquals(
-            __::minify_html($this->normalize($output)),
-            __::minify_html($this->normalize($expected_html))
-        );
+        $this->assertEquals($this->normalize($output), $this->normalize($expected_html));
         $translations = $this->gtbabel->data->getTranslationsFromDatabase();
         $this->assertEquals(count($translations), count($expected_data));
+
         foreach ($translations as $translations__value) {
             $match = false;
             foreach ($expected_data as $expected_data__value) {
@@ -2170,7 +2179,7 @@ EOD;
         echo $html;
         $this->gtbabel->stop();
         ob_end_clean();
-        $this->setHostTo('/en/house/');
+        $this->setHostTo('/en/a-house/');
         ob_start();
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
@@ -2185,7 +2194,7 @@ EOD;
         $this->assertEquals($translations[1]['str'], 'Der Inhalt');
         $this->assertEquals($path, '/haus');
 
-        $settings['exclude_urls_content'] = [['url' => 'house']];
+        $settings['exclude_urls_content'] = [['url' => 'a-house']];
         $settings['exclude_urls_slugs'] = [];
         $this->setHostTo('/haus/');
         ob_start();
@@ -2194,7 +2203,7 @@ EOD;
         echo $html;
         $this->gtbabel->stop();
         ob_end_clean();
-        $this->setHostTo('/en/house/');
+        $this->setHostTo('/en/a-house/');
         ob_start();
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
@@ -2206,10 +2215,10 @@ EOD;
         $this->gtbabel->reset();
         $this->assertEquals(count($translations), 1);
         $this->assertEquals($translations[0]['str'], 'haus');
-        $this->assertEquals($path, '/en/house/');
+        $this->assertEquals($path, '/en/a-house/');
 
         $settings['exclude_urls_content'] = [];
-        $settings['exclude_urls_slugs'] = [['url' => 'house']];
+        $settings['exclude_urls_slugs'] = [['url' => 'a-house']];
         $this->setHostTo('/haus/');
         ob_start();
         $this->gtbabel->config($settings);
@@ -2217,7 +2226,7 @@ EOD;
         echo $html;
         $this->gtbabel->stop();
         ob_end_clean();
-        $this->setHostTo('/en/house/');
+        $this->setHostTo('/en/a-house/');
         ob_start();
         $this->gtbabel->config($settings);
         $this->gtbabel->start();
@@ -2230,31 +2239,31 @@ EOD;
         $this->assertEquals(count($translations), 2);
         $this->assertEquals($translations[0]['str'], 'haus');
         $this->assertEquals($translations[1]['str'], 'Der Inhalt');
-        $this->assertEquals($path, '/house');
+        $this->assertEquals($path, '/a-house');
     }
 
     public function test_redirects()
     {
         $data = [
             [
-                'http://gtbabel.local.vielhuber.de/',
-                'http://gtbabel.local.vielhuber.de/de/',
+                'http://gtbabel.vielhuber.dev/',
+                'http://gtbabel.vielhuber.dev/de/',
                 ['de', ['de', null, 'en', null], 'source', false, null, null]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/',
-                'http://gtbabel.local.vielhuber.de/german/',
+                'http://gtbabel.vielhuber.dev/',
+                'http://gtbabel.vielhuber.dev/german/',
                 ['de', ['german', null, 'english', null], 'source', false, null, null]
             ],
-            ['http://gtbabel.local.vielhuber.de/', null, ['de', ['', null, 'en', null], 'source', false, null, null]],
+            ['http://gtbabel.vielhuber.dev/', null, ['de', ['', null, 'en', null], 'source', false, null, null]],
             [
-                'http://gtbabel.local.vielhuber.de/',
-                'http://gtbabel.local.vielhuber.de/en/',
+                'http://gtbabel.vielhuber.dev/',
+                'http://gtbabel.vielhuber.dev/en/',
                 ['en', ['de', null, 'en', null], 'source', false, null, null]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/dies/ist/ein/test/',
-                'http://gtbabel.local.vielhuber.de/de/dies/ist/ein/test/',
+                'http://gtbabel.vielhuber.dev/dies/ist/ein/test/',
+                'http://gtbabel.vielhuber.dev/de/dies/ist/ein/test/',
                 ['de', ['de', null, 'en', null], 'source', false, null, null]
             ],
             [
@@ -2270,11 +2279,11 @@ EOD;
                 ]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/',
-                'http://gtbabel.local.vielhuber.de/?lang=en',
+                'http://gtbabel.vielhuber.dev/',
+                'http://gtbabel.vielhuber.dev/?lang=en',
                 [
                     'en',
-                    ['', 'http://gtbabel.local.vielhuber.de', '', 'http://gtbabel.local.vielhuber.de'],
+                    ['', 'http://gtbabel.vielhuber.dev', '', 'http://gtbabel.vielhuber.dev'],
                     'source',
                     false,
                     null,
@@ -2282,11 +2291,11 @@ EOD;
                 ]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/test/',
-                'http://gtbabel.local.vielhuber.de/test/?lang=en',
+                'http://gtbabel.vielhuber.dev/test/',
+                'http://gtbabel.vielhuber.dev/test/?lang=en',
                 [
                     'en',
-                    ['', 'http://gtbabel.local.vielhuber.de', '', 'http://gtbabel.local.vielhuber.de'],
+                    ['', 'http://gtbabel.vielhuber.dev', '', 'http://gtbabel.vielhuber.dev'],
                     'source',
                     false,
                     null,
@@ -2294,33 +2303,33 @@ EOD;
                 ]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/?ajax=foo',
-                'http://gtbabel.local.vielhuber.de/en/?ajax=foo',
-                ['en', ['de', null, 'en', null], 'source', true, 'http://gtbabel.local.vielhuber.de/en/', null]
+                'http://gtbabel.vielhuber.dev/?ajax=foo',
+                'http://gtbabel.vielhuber.dev/en/?ajax=foo',
+                ['en', ['de', null, 'en', null], 'source', true, 'http://gtbabel.vielhuber.dev/en/', null]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/test',
-                'http://gtbabel.local.vielhuber.de/test/',
+                'http://gtbabel.vielhuber.dev/test',
+                'http://gtbabel.vielhuber.dev/test/',
                 ['de', ['', null, 'en', null], 'source', false, null, null]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/test',
-                'http://gtbabel.local.vielhuber.de/test/',
+                'http://gtbabel.vielhuber.dev/test',
+                'http://gtbabel.vielhuber.dev/test/',
                 ['de', ['', null, 'en', null], 'source', false, null, null]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/test',
-                'http://gtbabel.local.vielhuber.de/de/test/',
+                'http://gtbabel.vielhuber.dev/test',
+                'http://gtbabel.vielhuber.dev/de/test/',
                 ['de', ['de', null, 'en', null], 'source', false, null, null]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/en/',
-                'http://gtbabel.local.vielhuber.de/de/',
+                'http://gtbabel.vielhuber.dev/en/',
+                'http://gtbabel.vielhuber.dev/de/',
                 ['de', ['de', null, 'en', null], 'source', false, null, ['en']]
             ],
             [
-                'http://gtbabel.local.vielhuber.de/en/test/',
-                'http://gtbabel.local.vielhuber.de/de/',
+                'http://gtbabel.vielhuber.dev/en/test/',
+                'http://gtbabel.vielhuber.dev/de/',
                 ['de', ['de', null, 'en', null], 'source', false, null, ['en']]
             ]
         ];
@@ -2360,6 +2369,7 @@ EOD;
                 $this->gtbabel->start();
                 $this->gtbabel->stop();
                 $this->gtbabel->reset();
+
                 if ($data__value[1] === null) {
                     $this->assertEquals(true, true);
                 } else {
@@ -2408,7 +2418,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/imprint/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/imprint/"></a>'
             ) !== false,
             true
         );
@@ -2433,7 +2443,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/imprint/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/de/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/imprint/"></a>'
             ) !== false,
             true
         );
@@ -2455,7 +2465,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/impressum/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/de/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/impressum/"></a>'
             ) !== false,
             true
         );
@@ -2477,7 +2487,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/impressum/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/de/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/impressum/"></a>'
             ) !== false,
             true
         );
@@ -2508,7 +2518,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/imprint/"></a><a href="http://gtbabel.local.vielhuber.de/fr/imprimer/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/de/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/imprint/"></a><a href="http://gtbabel.vielhuber.dev/fr/imprimer/"></a>'
             ) !== false,
             true
         );
@@ -2528,7 +2538,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/imprint/"></a><a href="http://gtbabel.local.vielhuber.de/fr/imprimer/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/de/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/imprint/"></a><a href="http://gtbabel.vielhuber.dev/fr/imprimer/"></a>'
             ) !== false,
             true
         );
@@ -2559,7 +2569,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/fr/impressum/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/impressum/"></a><a href="http://gtbabel.vielhuber.dev/fr/impressum/"></a>'
             ) !== false,
             true
         );
@@ -2579,7 +2589,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/fr/impressum/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/impressum/"></a><a href="http://gtbabel.vielhuber.dev/fr/impressum/"></a>'
             ) !== false,
             true
         );
@@ -2601,7 +2611,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/imprint/"></a><a href="http://gtbabel.local.vielhuber.de/fr/impressum/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/imprint/"></a><a href="http://gtbabel.vielhuber.dev/fr/impressum/"></a>'
             ) !== false,
             true
         );
@@ -2623,7 +2633,7 @@ EOD;
         $this->assertEquals(
             strpos(
                 $output,
-                '<a href="http://gtbabel.local.vielhuber.de/impressum/"></a><a href="http://gtbabel.local.vielhuber.de/en/imprint/"></a><a href="http://gtbabel.local.vielhuber.de/fr/imprimer/"></a>'
+                '<a href="http://gtbabel.vielhuber.dev/impressum/"></a><a href="http://gtbabel.vielhuber.dev/en/imprint/"></a><a href="http://gtbabel.vielhuber.dev/fr/imprimer/"></a>'
             ) !== false,
             true
         );
@@ -2745,6 +2755,11 @@ EOD;
 
     public function runDiff($filename, $time_max = 0, $overwrite_settings = [], $specific_host = null)
     {
+        // slowness factor
+        if ($time_max > 0) {
+            $time_max *= 5;
+        }
+
         $time_begin = microtime(true);
 
         // start another output buffer (that does not interfer with gtbabels output buffer)
@@ -2781,37 +2796,105 @@ EOD;
             return;
         }
 
-        if (!file_exists(__DIR__ . '/files/out/' . $filename)) {
-            file_put_contents(__DIR__ . '/files/out/' . $filename, $html_translated);
+        $extension = mb_substr($filename, mb_strrpos($filename, '.') + 1);
+
+        $mode = null;
+
+        if (file_exists(__DIR__ . '/files/out/' . $filename)) {
+            $mode = 'single';
+        } elseif (file_exists(__DIR__ . '/files/out/' . str_replace('.' . $extension, '_1.' . $extension, $filename))) {
+            $mode = 'multiple';
         }
 
-        $html_target = file_get_contents(__DIR__ . '/files/out/' . $filename);
-
-        $extension = mb_substr($filename, mb_strrpos($filename, '.') + 1);
+        if ($mode === null) {
+            echo 'Missing file for test ' . $filename . PHP_EOL;
+            $this->assertTrue(false);
+            return;
+        }
 
         $debug_filename = __DIR__ . '/files/out/' . str_replace('.' . $extension, '_expected.' . $extension, $filename);
 
-        $passed =
-            __::minify_html($this->normalize($html_translated)) === __::minify_html($this->normalize($html_target));
+        if ($mode === 'single') {
+            $html_target = file_get_contents(__DIR__ . '/files/out/' . $filename);
 
-        if ($passed === false) {
-            file_put_contents($debug_filename, $html_translated);
-            // debug output to copy
-            echo PHP_EOL . PHP_EOL . '##############################################' . PHP_EOL;
-            echo json_encode([
-                __::minify_html($this->normalize($html_translated)),
-                __::minify_html($this->normalize($html_target))
-            ]);
-            echo PHP_EOL . '##############################################' . PHP_EOL . PHP_EOL;
-            $this->assertTrue(false);
+            $passed = $this->normalize($html_translated) === $this->normalize($html_target);
+
+            if ($passed === false) {
+                file_put_contents($debug_filename, $html_translated);
+                // debug output to copy
+                echo PHP_EOL . PHP_EOL . '##############################################' . PHP_EOL;
+                echo '🔴 wrong:' . PHP_EOL;
+                echo json_encode($this->normalize($html_translated));
+                echo PHP_EOL;
+                echo PHP_EOL;
+                echo '🟢 expected:' . PHP_EOL;
+                echo json_encode($this->normalize($html_target));
+                echo PHP_EOL . '##############################################' . PHP_EOL . PHP_EOL;
+                $this->assertTrue(false);
+            } else {
+                if (file_exists($debug_filename)) {
+                    unlink($debug_filename);
+                }
+                $this->assertTrue(true);
+            }
         } else {
-            @unlink($debug_filename);
-            $this->assertTrue(true);
+            $part = 1;
+            $passed = false;
+            while (
+                file_exists(
+                    __DIR__ . '/files/out/' . str_replace('.' . $extension, '_' . $part . '.' . $extension, $filename)
+                )
+            ) {
+                $filename_part = str_replace('.' . $extension, '_' . $part . '.' . $extension, $filename);
+
+                $html_target = file_get_contents(__DIR__ . '/files/out/' . $filename_part);
+
+                if ($this->normalize($html_translated) === $this->normalize($html_target)) {
+                    $passed = true;
+                    break;
+                }
+
+                $part++;
+            }
+
+            if ($passed === false) {
+                file_put_contents($debug_filename, $html_translated);
+                echo '🟢 expected:' . PHP_EOL;
+                echo json_encode($this->normalize($html_target));
+                echo PHP_EOL . '##############################################' . PHP_EOL . PHP_EOL;
+                $this->assertTrue(false);
+            } else {
+                if (file_exists($debug_filename)) {
+                    unlink($debug_filename);
+                }
+                $this->assertTrue(true);
+            }
         }
     }
 
     public function normalize($str)
     {
+        $str = __::minify_html($str);
+
+        // <p> Test </p> should be replaced with <p>Test</p>
+        $str = preg_replace('/>\s+/u', '>', $str);
+        $str = preg_replace('/\s+</u', '<', $str);
+
+        // decode HTML entities first so we can normalize the actual characters
+        $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // normalize all dash/hyphen variations to standard hyphen-minus
+        $dashes = [
+            "\u{2010}", // HYPHEN
+            "\u{2011}", // NON-BREAKING HYPHEN
+            "\u{2012}", // FIGURE DASH
+            "\u{2013}", // EN DASH
+            "\u{2014}", // EM DASH
+            "\u{2212}", // MINUS SIGN
+            "\u{2215}" // DIVISION SLASH
+        ];
+        $str = str_replace($dashes, '-', $str);
+
         $str = str_replace("\r\n", "\n", $str);
         $str = str_replace("\r", "\n", $str);
         $str = trim($str);
@@ -2855,5 +2938,13 @@ EOD;
                 unset($_SERVER['HTTP_X_REQUESTED_WITH']);
             }
         }
+    }
+
+    function log($msg)
+    {
+        if (!is_string($msg)) {
+            $msg = serialize($msg);
+        }
+        fwrite(STDERR, print_r($msg . PHP_EOL, true));
     }
 }

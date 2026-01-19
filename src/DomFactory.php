@@ -3,13 +3,20 @@ namespace gtbabel\core;
 
 class DomFactory
 {
+    public $utils;
+    public $data;
+    public $host;
+    public $settings;
+    public $tags;
+    public $log;
+
     function __construct(
-        Utils $utils = null,
-        Data $data = null,
-        Host $host = null,
-        Settings $settings = null,
-        Tags $tags = null,
-        Log $log = null
+        ?Utils $utils = null,
+        ?Data $data = null,
+        ?Host $host = null,
+        ?Settings $settings = null,
+        ?Tags $tags = null,
+        ?Log $log = null
     ) {
         $this->utils = $utils ?: new Utils();
         $this->data = $data ?: new Data();

@@ -5,7 +5,12 @@ use vielhuber\stringhelper\__;
 
 class Grabber
 {
-    function __construct(Settings $settings = null, Utils $utils = null, Log $log = null, Data $data = null)
+    public $settings;
+    public $utils;
+    public $log;
+    public $data;
+
+    function __construct(?Settings $settings = null, ?Utils $utils = null, ?Log $log = null, ?Data $data = null)
     {
         $this->settings = $settings ?: new Settings();
         $this->utils = $utils ?: new Utils();

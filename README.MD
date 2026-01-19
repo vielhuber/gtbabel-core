@@ -1,86 +1,86 @@
-[![Build Status](https://travis-ci.com/gtbabel/core.svg?branch=master)](https://travis-ci.com/gtbabel/core)
+[![build status](https://github.com/vielhuber/gtbabel-core/actions/workflows/ci.yml/badge.svg)](https://github.com/vielhuber/gtbabel-core/actions)
 
 # 🌐 Gtbabel 🌐
 
 Gtbabel automatically translates your HTML/PHP pages – server sided.
 
--   [Basic idea](#basic-idea)
--   [Features](#features)
--   [Requirements](#requirements)
--   [Installation](#installation)
--   [Usage](#usage)
--   [Configuration](#configuration)
--   [Other usage](#other-usage)
--   [WordPress plugin](#wordpress-plugin)
-    -   [Permissions](#permissions)
-    -   [Email notifications](#email-notifications)
--   [Database and Gettext](#database-and-gettext)
--   [JavaScript](#javascript)
--   [Modified nodes](#modified-nodes)
--   [HTML](#html)
--   [Ambiguous translations and plural forms](#ambiguous-translations-and-plural-forms)
--   [Multiple source languages](#multiple-source-languages)
--   [Hiding content](#hiding-content)
--   [Router](#router)
--   [Domain schema](#domain-schema)
--   [Dealing with assets](#dealing-with-assets)
--   [JSON Responses](#json-responses)
--   [Translation management](#translation-management)
--   [Flow diagram](#flow-diagram)
--   [Language picker](#language-picker)
--   [Helper functions](#helper-functions)
--   [Echoing strings](#echoing-strings)
--   [Dynamic data](#dynamic-data)
-    -   [Search](#search)
-    -   [URL query arguments](#url-query-arguments)
-    -   [Mails](#mails)
-    -   [Comments](#comments)
--   [Language codes](#language-codes)
--   [Google Translation API](#google-translation-api)
--   [API usage costs](#api-usage-costs)
--   [Custom translation providers](#custom-translation-providers)
--   [Development setup](#development-setup)
-    -   [Unit tests](#unit-tests)
-    -   [Integration tests](#integration-tests)
-    -   [Build pipeline](#build-pipeline)
--   [Caveats](#caveats)
--   [Credits](#credits)
+- [Basic idea](#basic-idea)
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Other usage](#other-usage)
+- [WordPress plugin](#wordpress-plugin)
+    - [Permissions](#permissions)
+    - [Email notifications](#email-notifications)
+- [Database and Gettext](#database-and-gettext)
+- [JavaScript](#javascript)
+- [Modified nodes](#modified-nodes)
+- [HTML](#html)
+- [Ambiguous translations and plural forms](#ambiguous-translations-and-plural-forms)
+- [Multiple source languages](#multiple-source-languages)
+- [Hiding content](#hiding-content)
+- [Router](#router)
+- [Domain schema](#domain-schema)
+- [Dealing with assets](#dealing-with-assets)
+- [JSON Responses](#json-responses)
+- [Translation management](#translation-management)
+- [Flow diagram](#flow-diagram)
+- [Language picker](#language-picker)
+- [Helper functions](#helper-functions)
+- [Echoing strings](#echoing-strings)
+- [Dynamic data](#dynamic-data)
+    - [Search](#search)
+    - [URL query arguments](#url-query-arguments)
+    - [Mails](#mails)
+    - [Comments](#comments)
+- [Language codes](#language-codes)
+- [Google Translation API](#google-translation-api)
+- [API usage costs](#api-usage-costs)
+- [Custom translation providers](#custom-translation-providers)
+- [Development setup](#development-setup)
+    - [Unit tests](#unit-tests)
+    - [Integration tests](#integration-tests)
+    - [Build pipeline](#build-pipeline)
+- [Caveats](#caveats)
+- [Credits](#credits)
 
 ## Basic idea
 
--   Gtbabel extracts on every page load any page into logical paragraph tokens.
--   Static and dynamic content is deliberately treated the same.
--   All tokens are replaced (if available) by it's translation before rendered.
--   The tokens get dumped (if not available), where they can be translated.
+- Gtbabel extracts on every page load any page into logical paragraph tokens.
+- Static and dynamic content is deliberately treated the same.
+- All tokens are replaced (if available) by it's translation before rendered.
+- The tokens get dumped (if not available), where they can be translated.
 
 ## Features
 
--   Lightweight: only ~3500 lines of code.
--   Framework agnostic: works with nearly any PHP based cms or static site.
--   Fast: once all translations are available, Gtbabel reaches a throughput of ~4000 words/s.
--   Auto translation: use the power of [Google Translation API](https://cloud.google.com/translate/docs), [Microsoft Translation API](https://azure.microsoft.com/de-de/services/cognitive-services/translator-text-api/) or [DeepL](https://www.deepl.com) to auto translate your pages and links into any language.
--   Custom providers: Connect custom translation APIs
--   Router included: spoof your request uri and let the magic happen, links are automatically converted (with slug collission detection).
--   Helper functions for current language and all languages available.
--   Basic seo considered: title tags, seo descriptions, open graph tags, html lang attribute, hreflang tags included.
--   RTL support: Adds a html dir attribute if language is rtl.
--   WordPress plugin available.
--   Prepared for translation management.
--   Works seamlessly with caching/preloading plugins.
--   Besides plain html does also handle and translate xml (like in dynamically generated sitemaps) and json (like in ajax responses).
--   PHPUnit e2e tests available.
--   Exports and imports directly to [gettext](https://www.gnu.org/software/gettext/) (using extracted comments and template files).
--   Multiple source languages supported concurrently.
--   Provide stopwords to prevent translations for specific words.
--   Entirely hide languages to prepare new translations beforehand.
--   DOM change detection: Observe specific page parts and translate dynamic content.
--   Auto throttling api translation for cost control.
--   Custom domain support (path based, subdomain based, top level domain based).
--   Frontend editor included.
+- Lightweight: only ~3500 lines of code.
+- Framework agnostic: works with nearly any PHP based cms or static site.
+- Fast: once all translations are available, Gtbabel reaches a throughput of ~4000 words/s.
+- Auto translation: use the power of [Google Translation API](https://cloud.google.com/translate/docs), [Microsoft Translation API](https://azure.microsoft.com/de-de/services/cognitive-services/translator-text-api/) or [DeepL](https://www.deepl.com) to auto translate your pages and links into any language.
+- Custom providers: Connect custom translation APIs
+- Router included: spoof your request uri and let the magic happen, links are automatically converted (with slug collission detection).
+- Helper functions for current language and all languages available.
+- Basic seo considered: title tags, seo descriptions, open graph tags, html lang attribute, hreflang tags included.
+- RTL support: Adds a html dir attribute if language is rtl.
+- WordPress plugin available.
+- Prepared for translation management.
+- Works seamlessly with caching/preloading plugins.
+- Besides plain html does also handle and translate xml (like in dynamically generated sitemaps) and json (like in ajax responses).
+- PHPUnit e2e tests available.
+- Exports and imports directly to [gettext](https://www.gnu.org/software/gettext/) (using extracted comments and template files).
+- Multiple source languages supported concurrently.
+- Provide stopwords to prevent translations for specific words.
+- Entirely hide languages to prepare new translations beforehand.
+- DOM change detection: Observe specific page parts and translate dynamic content.
+- Auto throttling api translation for cost control.
+- Custom domain support (path based, subdomain based, top level domain based).
+- Frontend editor included.
 
 ## Requirements
 
--   PHP >=7.2
+- PHP >=7.2
 
 ## Installation
 
@@ -1445,38 +1445,38 @@ You don't have to change any code in the frontend at all: If you already have fu
 
 The following features are included:
 
--   Configuration gui
--   Easy setup wizard
--   Auto translation (including sitemap parser)
--   Delete unused strings
--   Detect shared strings
--   Manual string translation (search and filter by url)
--   Translation services
--   Support for plugins like [Contact Form 7](https://de.wordpress.org/plugins/contact-form-7/)
--   Translate specific posts/pages or any other url
--   Fine grained control publish status of posts/pages
--   Possibility to replace files per language via the media library
--   Multisite support
--   Flexible permission system based on capabilities
--   Prevents multiple entries of different thumbnail sizes
+- Configuration gui
+- Easy setup wizard
+- Auto translation (including sitemap parser)
+- Delete unused strings
+- Detect shared strings
+- Manual string translation (search and filter by url)
+- Translation services
+- Support for plugins like [Contact Form 7](https://de.wordpress.org/plugins/contact-form-7/)
+- Translate specific posts/pages or any other url
+- Fine grained control publish status of posts/pages
+- Possibility to replace files per language via the media library
+- Multisite support
+- Flexible permission system based on capabilities
+- Prevents multiple entries of different thumbnail sizes
 
 ### Permissions
 
 Gtbabel for WordPress uses the following capabilities:
 
--   `gtbabel__edit_settings`: capability to edit settings
--   `gtbabel__email_notifications`: capability to receive email notifications
--   `gtbabel__translation_list`: capability to use the list of translations
--   `gtbabel__translation_assistant`: capability to use the translation assistant
--   `gtbabel__translation_frontendeditor`: capability to use the frontend editor
--   `gtbabel__translate_xx`: capability to translate the language with code `xx`
+- `gtbabel__edit_settings`: capability to edit settings
+- `gtbabel__email_notifications`: capability to receive email notifications
+- `gtbabel__translation_list`: capability to use the list of translations
+- `gtbabel__translation_assistant`: capability to use the translation assistant
+- `gtbabel__translation_frontendeditor`: capability to use the frontend editor
+- `gtbabel__translate_xx`: capability to translate the language with code `xx`
 
 By default, administrators have all capabilities (except `gtbabel__email_notifications`).\
 You can add these capabilities to your WordPress user roles individually
 
--   in your WordPress backend under Gtbabel > Permissions,
--   with plugins like [User Role Editor](https://de.wordpress.org/plugins/user-role-editor/),
--   by using custom code.
+- in your WordPress backend under Gtbabel > Permissions,
+- with plugins like [User Role Editor](https://de.wordpress.org/plugins/user-role-editor/),
+- by using custom code.
 
 The following example gives the role "Editor" translation permissions for the languages English and Français in the translation assistant:
 
@@ -1493,20 +1493,20 @@ add_action('admin_init', function () {
 
 With the `wp_mail_notifications` option you can instruct Gtbabel to send regular status e-mails to all translators (that have both the `gtbabel__translation_assistant` and `gtbabel__email_notifications` role):
 
--   `false`: No status e-mails are sent
--   `'hourly'`: Status e-mails are sent once every hour
--   `'twicedaily'`: Status e-mails are sent twice a day
--   `'daily'`: Status e-mails are sent once every day
--   `'weekly'`: Status e-mails are sent once every week
+- `false`: No status e-mails are sent
+- `'hourly'`: Status e-mails are sent once every hour
+- `'twicedaily'`: Status e-mails are sent twice a day
+- `'daily'`: Status e-mails are sent once every day
+- `'weekly'`: Status e-mails are sent once every week
 
 Make sure that [WP-Cron](https://developer.wordpress.org/plugins/cron/) is enabled and running regularly and mails can be sent properly from your server.
 
 ## Database and Gettext
 
--   The final html gets parsed and is split up in reasonable strings.
--   Gtbabel operates on a database layer (e.g. sqlite) to ensure fast load times.
--   The database structure reflects the structure of [GNU gettext](https://www.gnu.org/software/gettext/).
--   You can export and import the data as po or even and xlsx files at any time.
+- The final html gets parsed and is split up in reasonable strings.
+- Gtbabel operates on a database layer (e.g. sqlite) to ensure fast load times.
+- The database structure reflects the structure of [GNU gettext](https://www.gnu.org/software/gettext/).
+- You can export and import the data as po or even and xlsx files at any time.
 
 ## JavaScript
 
@@ -1715,9 +1715,9 @@ This all gets translated correctly to the target language (in our case `de`):
 <!DOCTYPE html>
 <html lang="de">
     <body>
-        <p>Einige Inhalte auf Englisch.</p>
-        <div>Inhalt auf Französisch.</div>
-        <p>Einige andere Inhalte in Englisch.</p>
+        <p>Einige Inhalte sind auf Englisch.</p>
+        <div>Inhalt in französischer Sprache.</div>
+        <p>Weitere Inhalte in englischer Sprache.</p>
     </body>
 </html>
 ```
@@ -1912,9 +1912,9 @@ If your json endpoint is not targeted via a language specific url, you can get t
 
 With the `unchecked_strings` option you can control what happens with unchecked strings:
 
--   `trans`: Show translation (which still needs to be checked)
--   `source`: Show source (show the string in the source language)
--   `hide`: Hide string (completely hide string until its checked)
+- `trans`: Show translation (which still needs to be checked)
+- `source`: Show source (show the string in the source language)
+- `hide`: Hide string (completely hide string until its checked)
 
 This way you can build an approval system in your backend, where translators can check strings before they are published.
 
@@ -2142,10 +2142,10 @@ Hreflang codes must be in [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_
 
 ## Google Translation API
 
--   Go to [Google API Console](https://console.cloud.google.com/apis)
--   Create a new project
--   Marketplace > Enable "Cloud Translation API" (this requires you to setup a billing account)
--   APIs and services > API credentials > Add a new api key
+- Go to [Google API Console](https://console.cloud.google.com/apis)
+- Create a new project
+- Marketplace > Enable "Cloud Translation API" (this requires you to setup a billing account)
+- APIs and services > API credentials > Add a new api key
 
 ## API usage costs
 
@@ -2176,26 +2176,26 @@ It can then accept and process common JSON request responses.
 
 ### Unit tests
 
--   Copy `.env.example` to `.env` and fill in api credentials
--   `composer install`
--   `./vendor/bin/phpunit`
+- Copy `.env.example` to `.env` and fill in api credentials
+- `composer install`
+- `./vendor/bin/phpunit`
 
 ### Integration tests
 
--   Copy `.env.example` to `.env` and fill in test url
--   Point vhost to `/tests/integration`
--   Test in browser
+- Copy `.env.example` to `.env` and fill in test url
+- Point vhost to `/tests/integration`
+- Test in browser
 
 ### Build pipeline
 
--   `npm install`
--   `npm run dev` / `npm run prod`
+- `npm install`
+- `npm run dev` / `npm run prod`
 
 ## Caveats
 
--   Gtbabel is good at translating whole pages. If you want to provide different content for different languages, Gtbabel might be the wrong tool (however you _can_ use `if( gtbabel_current_lng() === 'other-lng' ) { echo 'content in source language'; }` and/or the concept of **Multiple source languages** in your templates to achieve that).
--   The source language acts as a base for every other language (however, you _can_ mark parts of a page with a different source language).
--   Gtbabel is designed to translate every part of the page without code changes (however you can exclude translations with the `translate_html_exclude`-option).
+- Gtbabel is good at translating whole pages. If you want to provide different content for different languages, Gtbabel might be the wrong tool (however you _can_ use `if( gtbabel_current_lng() === 'other-lng' ) { echo 'content in source language'; }` and/or the concept of **Multiple source languages** in your templates to achieve that).
+- The source language acts as a base for every other language (however, you _can_ mark parts of a page with a different source language).
+- Gtbabel is designed to translate every part of the page without code changes (however you can exclude translations with the `translate_html_exclude`-option).
 
 ## Credits
 

@@ -5,7 +5,9 @@ class Settings
 {
     public $args;
 
-    function __construct(Utils $utils = null)
+    public $utils;
+
+    function __construct(?Utils $utils = null)
     {
         $this->utils = $utils ?: new Utils();
     }

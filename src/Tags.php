@@ -5,7 +5,11 @@ use vielhuber\stringhelper\__;
 
 class Tags
 {
-    function __construct(Utils $utils = null, Settings $settings = null, Log $log = null)
+    public $utils;
+    public $settings;
+    public $log;
+
+    function __construct(?Utils $utils = null, ?Settings $settings = null, ?Log $log = null)
     {
         $this->utils = $utils ?: new Utils();
         $this->settings = $settings ?: new Settings();

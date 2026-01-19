@@ -13,14 +13,22 @@ class Dom
     public $group_cache;
     public $localize_js_script;
 
+    public $utils;
+    public $data;
+    public $host;
+    public $settings;
+    public $tags;
+    public $log;
+    public $domfactory;
+
     function __construct(
-        Utils $utils = null,
-        Data $data = null,
-        Host $host = null,
-        Settings $settings = null,
-        Tags $tags = null,
-        Log $log = null,
-        DomFactory $domfactory = null
+        ?Utils $utils = null,
+        ?Data $data = null,
+        ?Host $host = null,
+        ?Settings $settings = null,
+        ?Tags $tags = null,
+        ?Log $log = null,
+        ?DomFactory $domfactory = null
     ) {
         $this->utils = $utils ?: new Utils();
         $this->data = $data ?: new Data();
@@ -1071,7 +1079,7 @@ class Dom
                         it is an inner tag node (span, br, ...)
                         AND
                         it has less than 2 children
-                        AND 
+                        AND
                         (
                             it has no siblings
                             OR
@@ -1089,7 +1097,7 @@ class Dom
                                 its next sibling is a <br>
                             )
                             AND
-                            (                                
+                            (
                                 it has 0 or 1 text node sibling
                                 OR
                                 it has 2 or more text node siblings less than 2 chars

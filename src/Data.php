@@ -11,6 +11,12 @@ class Data
     public $table;
     public $stats;
 
+    public $utils;
+    public $host;
+    public $settings;
+    public $tags;
+    public $log;
+
     function __construct(
         Utils $utils = null,
         Host $host = null,
@@ -54,7 +60,7 @@ class Data
                     'CREATE TABLE IF NOT EXISTS ' .
                         $this->table .
                         '(
-                            id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
                             str TEXT NOT NULL,
                             context VARCHAR(20) NOT NULL,
                             lng_source VARCHAR(20) NOT NULL,
@@ -93,7 +99,7 @@ class Data
                 'CREATE TABLE IF NOT EXISTS ' .
                     $this->table .
                     '(
-                        id BIGINT PRIMARY KEY AUTO_INCREMENT, 
+                        id BIGINT PRIMARY KEY AUTO_INCREMENT,
                         str TEXT NOT NULL,
                         context VARCHAR(20) NOT NULL,
                         lng_source VARCHAR(20) NOT NULL,
@@ -274,13 +280,13 @@ class Data
 
     function caseSensitiveCol($col)
     {
-        if ($this->db->sql->engine === 'sqlite') {
+        if ($this->db->connect->engine === 'sqlite') {
             return $col;
         }
         return 'BINARY ' . $col;
     }
 
-    function trackDiscovered($str, $lng_source, $lng_target, $context = null)
+    function trackDiscovered($str, $lng_source, $lng_target, ?string $context = null)
     {
         if (!($this->settings->get('discovery_log') == '1')) {
             return;
@@ -296,7 +302,7 @@ class Data
         ];
     }
 
-    function getExistingTranslationFromCache($str, $lng_source, $lng_target, $context = null, &$meta = [])
+    function getExistingTranslationFromCache($str, $lng_source, $lng_target, ?string $context = null, &$meta = [])
     {
         // track discovered strings
         $this->trackDiscovered($str, $lng_source, $lng_target, $context);
@@ -328,7 +334,7 @@ class Data
         return $return;
     }
 
-    function getExistingTranslationReverseFromCache($str, $lng_source, $lng_target, $context = null)
+    function getExistingTranslationReverseFromCache($str, $lng_source, $lng_target, ?string $context = null)
     {
         if (
             $str === '' ||
@@ -347,8 +353,12 @@ class Data
         return $this->data['cache_reverse'][$lng_source][$lng_target][$context ?? ''][html_entity_decode($str)];
     }
 
-    function getTranslationFromDatabase($str, $context = null, $lng_source = null, $lng_target = null)
-    {
+    function getTranslationFromDatabase(
+        $str,
+        ?string $context = null,
+        ?string $lng_source = null,
+        ?string $lng_target = null
+    ) {
         return $this->db->fetch_row(
             'SELECT * FROM ' .
                 $this->table .
@@ -537,7 +547,10 @@ class Data
                 return strnatcasecmp($a['context'], $b['context']);
             }
             if ($order_by_string === true) {
-                return strnatcasecmp(@$a[$lng_source], @$b[$lng_source]);
+                return strnatcasecmp(
+                    isset($a[$lng_source]) && $a[$lng_source] != '' ? $a[$lng_source] : '',
+                    isset($b[$lng_source]) && $b[$lng_source] != '' ? $b[$lng_source] : ''
+                );
             } else {
                 return $a['order'] - $b['order'];
             }
@@ -779,7 +792,7 @@ class Data
         return true;
     }
 
-    function bulkEdit($action, $lng = null, $checked = null)
+    function bulkEdit($action, ?string $lng = null, ?bool $checked = null)
     {
         if (!in_array($action, ['delete', 'uncheck', 'check'])) {
             die();
@@ -843,7 +856,7 @@ class Data
         return $this->db->fetch_col('SELECT DISTINCT context FROM ' . $this->table . ' ORDER BY context');
     }
 
-    function deleteStringFromDatabase($str, $context, $lng_source, $lng_target = null)
+    function deleteStringFromDatabase($str, $context, $lng_source, ?string $lng_target = null)
     {
         $args = [];
         $args['str'] = $str;
@@ -915,14 +928,14 @@ class Data
 
     function resetTranslations()
     {
-        if ($this->db->sql->engine === 'sqlite') {
+        if ($this->db->connect->engine === 'sqlite') {
             @unlink($this->utils->getFileOrFolderWithAbsolutePath($this->settings->get('database')['filename']));
         } else {
             $this->db->delete_table($this->table);
         }
     }
 
-    function clearTable($lng_source = null, $lng_target = null)
+    function clearTable(?string $lng_source = null, ?string $lng_target = null)
     {
         if ($lng_source === null && $lng_target === null) {
             $this->db->clear($this->table);
@@ -938,8 +951,13 @@ class Data
         }
     }
 
-    function discoveryLogGet($time = null, $after = true, $url = null, $slim_output = true, $delete = false)
-    {
+    function discoveryLogGet(
+        ?string $time = null,
+        $after = true,
+        ?string $url = null,
+        $slim_output = true,
+        $delete = false
+    ) {
         if ($this->db === null) {
             return;
         }
@@ -973,7 +991,7 @@ class Data
         if ($urls !== null) {
             $query .=
                 ' AND ' .
-                ($this->db->sql->engine === 'sqlite'
+                ($this->db->connect->engine === 'sqlite'
                     ? 'TRIM(discovered_last_url,\'/\')'
                     : 'TRIM(\'/\' FROM discovered_last_url)') .
                 ' IN (' .
@@ -996,22 +1014,22 @@ class Data
         }
     }
 
-    function discoveryLogGetAfter($time = null, $url = null, $slim_output = true)
+    function discoveryLogGetAfter(?string $time = null, ?string $url = null, $slim_output = true)
     {
         return $this->discoveryLogGet($time, true, $url, $slim_output, false);
     }
 
-    function discoveryLogGetBefore($time = null, $url = null, $slim_output = true)
+    function discoveryLogGetBefore(?string $time = null, ?string $url = null, $slim_output = true)
     {
         return $this->discoveryLogGet($time, false, $url, $slim_output, false);
     }
 
-    function discoveryLogDeleteAfter($time = null, $url = null)
+    function discoveryLogDeleteAfter(?string $time = null, ?string $url = null)
     {
         return $this->discoveryLogGet($time, true, $url, false, true);
     }
 
-    function discoveryLogDeleteBefore($time = null, $url = null)
+    function discoveryLogDeleteBefore(?string $time = null, ?string $url = null)
     {
         return $this->discoveryLogGet($time, false, $url, false, true);
     }
@@ -1037,7 +1055,7 @@ class Data
         return $this->settings->getLabelForLanguageCode($this->getCurrentLanguageCode());
     }
 
-    function getLanguagePickerData($with_args = true, $cur_url = null, $hide_active = false)
+    function getLanguagePickerData($with_args = true, ?string $cur_url = null, $hide_active = false)
     {
         $data = [];
         if (!$this->host->responseCodeIsSuccessful()) {
@@ -1135,8 +1153,13 @@ class Data
         return false;
     }
 
-    function prepareTranslationAndAddDynamicallyIfNeeded($orig, $lng_source, $lng_target, $context = null, &$meta = [])
-    {
+    function prepareTranslationAndAddDynamicallyIfNeeded(
+        $orig,
+        $lng_source,
+        $lng_target,
+        ?string $context = null,
+        &$meta = []
+    ) {
         $context = $this->autoDetermineContext($orig, $context);
 
         if (($context === 'slug' || $context === 'file') && $this->host->contentTranslationIsDisabledForUrl($orig)) {
@@ -1539,6 +1562,7 @@ class Data
         if (strpos($str, 'url(') !== false) {
             preg_match_all('/url\((.+?)\)/', $str, $matches);
             foreach ($matches[1] as $matches__value) {
+                $matches__value = htmlspecialchars_decode($matches__value, ENT_QUOTES);
                 $urls[] = trim(trim(trim(trim($matches__value), '\''), '"'));
             }
         }
@@ -1554,8 +1578,13 @@ class Data
         return $urls;
     }
 
-    function getTranslationAndAddDynamicallyIfNeeded($orig, $lng_source, $lng_target, $context = null, &$meta = [])
-    {
+    function getTranslationAndAddDynamicallyIfNeeded(
+        $orig,
+        $lng_source,
+        $lng_target,
+        ?string $context = null,
+        &$meta = []
+    ) {
         /*
         $orig
         - <a href="https://tld.com" class="foo" data-bar="baz">Hallo</a> Welt!
@@ -1758,7 +1787,7 @@ class Data
         $this->saveCacheToDatabase(false);
     }
 
-    function autoTranslateString($orig, $lng_source, $lng_target, $context = null)
+    function autoTranslateString($orig, $lng_source, $lng_target, ?string $context = null)
     {
         if ($lng_source === null) {
             $lng_source = $this->settings->getSourceLanguageCode();
@@ -1955,7 +1984,7 @@ class Data
         return $str;
     }
 
-    function translateStringMock($str, $lng_source, $lng_target, $context = null)
+    function translateStringMock($str, $lng_source, $lng_target, ?string $context = null)
     {
         if ($lng_source === null) {
             $lng_source = $this->settings->getSourceLanguageCode();
@@ -1973,7 +2002,7 @@ class Data
         return $str . ($context != '' ? '-' . $context : '') . '-' . $lng_target;
     }
 
-    function stringShouldNotBeTranslated($str, $context = null)
+    function stringShouldNotBeTranslated($str, ?string $context = null)
     {
         if ($str === null || $str === true || $str === false || $str === '') {
             return true;
@@ -2065,7 +2094,7 @@ class Data
         return false;
     }
 
-    function autoDetermineContext($value, $suggestion = null)
+    function autoDetermineContext($value, ?string $suggestion = null)
     {
         $context = $suggestion;
         if ($context === null || $context == '') {
@@ -2128,7 +2157,7 @@ class Data
         return $context;
     }
 
-    function stringIsChecked($str, $lng_source, $lng_target, $context = null)
+    function stringIsChecked($str, $lng_source, $lng_target, ?string $context = null)
     {
         if ($lng_target === $lng_source) {
             return true;
@@ -2150,7 +2179,7 @@ class Data
         return true;
     }
 
-    function getUrlTranslationInLanguage($from_lng, $to_lng, $url = null)
+    function getUrlTranslationInLanguage($from_lng, $to_lng, ?string $url = null)
     {
         if ($url === null) {
             $url = $this->host->getCurrentUrlWithArgs();
@@ -2499,7 +2528,7 @@ class Data
             }
             $data_raw = $this->db->fetch_all(
                 'SELECT translated_by, SUM(' .
-                    ($this->db->sql->engine === 'sqlite' ? 'LENGTH' : 'CHAR_LENGTH') .
+                    ($this->db->connect->engine === 'sqlite' ? 'LENGTH' : 'CHAR_LENGTH') .
                     '(str)) as length FROM ' .
                     $this->table .
                     ' WHERE translated_by IS NOT NULL' .

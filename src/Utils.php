@@ -74,6 +74,11 @@ class Utils
         return php_sapi_name() === 'cli';
     }
 
+    function isPhpUnit()
+    {
+        return strpos($_SERVER['argv'][0], 'phpunit') !== false;
+    }
+
     function getWordPressPluginFileStorePathRelative()
     {
         return '/' . trim(str_replace($this->getDocRoot(), '', wp_upload_dir()['basedir']), '/') . '/gtbabel';

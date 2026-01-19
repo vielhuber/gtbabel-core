@@ -3,12 +3,18 @@ namespace gtbabel\core;
 
 class Router
 {
+    public $data;
+    public $host;
+    public $settings;
+    public $log;
+    public $utils;
+
     function __construct(
-        Data $data = null,
-        Host $host = null,
-        Settings $settings = null,
-        Log $log = null,
-        Utils $utils = null
+        ?Data $data = null,
+        ?Host $host = null,
+        ?Settings $settings = null,
+        ?Log $log = null,
+        ?Utils $utils = null
     ) {
         $this->data = $data ?: new Data();
         $this->host = $host ?: new Host();

@@ -6,7 +6,6 @@
     stopOnFailure="true"
     backupGlobals="true"
     xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
-    cacheDirectory=".phpunit.cache"
 >
   <testsuites>
     <testsuite name="testsuite">

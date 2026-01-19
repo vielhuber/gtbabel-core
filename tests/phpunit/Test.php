@@ -83,11 +83,9 @@ class Test extends \PHPUnit\Framework\TestCase
         $router
             ->expects($this->any())
             ->method('redirect')
-            ->will(
-                $this->returnCallback(function ($url, $status_code) {
-                    throw new \Exception($url);
-                })
-            );
+            ->willReturnCallback(function ($url, $status_code) {
+                throw new \Exception($url);
+            });
         $gettext = $this->getMockBuilder(Gettext::class)
             ->setConstructorArgs([$data, $settings])
             ->onlyMethods([])

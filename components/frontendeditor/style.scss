@@ -1,5 +1,6 @@
+@use "sass:meta";
 /* increase specificity */
 html[lang][lang][lang][lang] {
-    @import './FrontendEditor';
-    @import './../wysiwygeditor/style';
+    @include meta.load-css('FrontendEditor');
+    @include meta.load-css('../wysiwygeditor/style');
 }

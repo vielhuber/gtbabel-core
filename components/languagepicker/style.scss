@@ -1,4 +1,5 @@
+@use "sass:meta";
 /* increase specificity */
 html[lang][lang] {
-    @import './LanguagePicker';
+    @include meta.load-css('LanguagePicker');
 }

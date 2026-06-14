@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace gtbabel\core;
 
 use vielhuber\stringhelper\__;
@@ -435,14 +436,33 @@ class Dom
                                     if ($meta_target !== null) {
                                         if ($meta_target->getAttribute('data-gtbabel-meta') != '') {
                                             $meta_existing = $meta_target->getAttribute('data-gtbabel-meta');
-                                            $meta = array_merge($meta, unserialize(base64_decode($meta_existing)));
-                                            $meta = __::array_unique($meta);
+                                            $meta_existing_decoded = base64_decode($meta_existing, true);
+                                            $meta_existing_data = false;
+                                            if ($meta_existing_decoded !== false) {
+                                                $meta_existing_data = json_decode($meta_existing_decoded, true);
+                                                if (!is_array($meta_existing_data)) {
+                                                    $meta_existing_data = @unserialize($meta_existing_decoded, [
+                                                        'allowed_classes' => false
+                                                    ]);
+                                                }
+                                            }
+                                            if (is_array($meta_existing_data)) {
+                                                $meta = array_merge($meta, $meta_existing_data);
+                                                $meta = __::array_unique($meta);
+                                            }
                                         }
-                                        $meta_encrypted = base64_encode(serialize($meta));
+                                        $meta_encrypted = base64_encode(
+                                            (string) json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                                        );
                                         $meta_target->setAttribute('data-gtbabel-meta', $meta_encrypted);
                                         $meta_target->setAttribute(
                                             'data-gtbabel-meta-key',
-                                            base64_encode(serialize($this->getIdOfNode($meta_target)))
+                                            base64_encode(
+                                                (string) json_encode(
+                                                    $this->getIdOfNode($meta_target),
+                                                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+                                                )
+                                            )
                                         );
                                     }
                                 }

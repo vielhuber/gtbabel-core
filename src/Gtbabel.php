@@ -311,7 +311,12 @@ class Gtbabel
 
     function detectDomChangesBackend()
     {
-        if (isset($_GET['gtbabel_translate_part']) && $_GET['gtbabel_translate_part'] == '1' && isset($_POST['html'])) {
+        if (
+            $this->settings->get('detect_dom_changes') === true &&
+            isset($_GET['gtbabel_translate_part']) &&
+            $_GET['gtbabel_translate_part'] == '1' &&
+            isset($_POST['html'])
+        ) {
             $input = $_POST['html'];
             $input = stripslashes($input);
             $output = $this->translate($input);

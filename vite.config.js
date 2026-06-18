@@ -9,7 +9,6 @@ export default defineConfig(({ mode }) => {
                     input: './components/detectdomchanges/script.js',
                     output: {
                         format: 'iife',
-                        inlineDynamicImports: true,
                         entryFileNames: 'bundle.js'
                     }
                 },
@@ -27,7 +26,6 @@ export default defineConfig(({ mode }) => {
                     input: './components/frontendeditor/script.js',
                     output: {
                         format: 'iife',
-                        inlineDynamicImports: true,
                         entryFileNames: 'bundle.js'
                     }
                 },

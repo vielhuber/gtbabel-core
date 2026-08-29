@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace gtbabel\core;
 
 use vielhuber\stringhelper\__;
@@ -18,11 +19,11 @@ class Data
     public $log;
 
     function __construct(
-        Utils $utils = null,
-        Host $host = null,
-        Settings $settings = null,
-        Tags $tags = null,
-        Log $log = null
+        ?Utils $utils = null,
+        ?Host $host = null,
+        ?Settings $settings = null,
+        ?Tags $tags = null,
+        ?Log $log = null
     ) {
         $this->utils = $utils ?: new Utils();
         $this->host = $host ?: new Host();

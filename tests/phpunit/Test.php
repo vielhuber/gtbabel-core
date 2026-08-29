@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 namespace gtbabel\core;
 
 use gtbabel\core\Gtbabel;
@@ -45,72 +46,38 @@ class Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function mock()
+    public function mock(): void
     {
-        $utils = $this->getMockBuilder(Utils::class)->setConstructorArgs([])->onlyMethods([])->getMock();
-        $settings = $this->getMockBuilder(Settings::class)
-            ->setConstructorArgs([$utils])
-            ->onlyMethods([])
-            ->getMock();
-        $log = $this->getMockBuilder(Log::class)
-            ->setConstructorArgs([$utils, $settings])
-            ->onlyMethods([])
-            ->getMock();
-        $tags = $this->getMockBuilder(Tags::class)
-            ->setConstructorArgs([$utils, $settings, $log])
-            ->onlyMethods([])
-            ->getMock();
-        $host = $this->getMockBuilder(Host::class)
-            ->setConstructorArgs([$settings, $log])
-            ->onlyMethods([])
-            ->getMock();
-        $data = $this->getMockBuilder(Data::class)
-            ->setConstructorArgs([$utils, $host, $settings, $tags, $log])
-            ->onlyMethods([])
-            ->getMock();
-        $grabber = $this->getMockBuilder(Grabber::class)
-            ->setConstructorArgs([$settings, $utils, $log, $data])
-            ->onlyMethods([])
-            ->getMock();
-        $domfactory = $this->getMockBuilder(DomFactory::class)
-            ->setConstructorArgs([$utils, $data, $host, $settings, $tags, $log])
-            ->onlyMethods([])
-            ->getMock();
-        $router = $this->getMockBuilder(Router::class)
-            ->setConstructorArgs([$data, $host, $settings, $log, $utils])
-            ->onlyMethods(['redirect'])
-            ->getMock();
-        $router
-            ->expects($this->any())
-            ->method('redirect')
-            ->willReturnCallback(function ($url, $status_code) {
+        $utils = new Utils();
+        $settings = new Settings($utils);
+        $log = new Log($utils, $settings);
+        $tags = new Tags($utils, $settings, $log);
+        $host = new Host($settings, $log);
+        $data = new Data($utils, $host, $settings, $tags, $log);
+        $grabber = new Grabber($settings, $utils, $log, $data);
+        $domfactory = new DomFactory($utils, $data, $host, $settings, $tags, $log);
+        $router = new class ($data, $host, $settings, $log, $utils) extends Router {
+            function redirect($url, $status_code)
+            {
                 throw new \Exception($url);
-            });
-        $gettext = $this->getMockBuilder(Gettext::class)
-            ->setConstructorArgs([$data, $settings])
-            ->onlyMethods([])
-            ->getMock();
-        $excel = $this->getMockBuilder(Excel::class)
-            ->setConstructorArgs([$data, $settings])
-            ->onlyMethods([])
-            ->getMock();
+            }
+        };
+        $gettext = new Gettext($data, $settings);
+        $excel = new Excel($data, $settings);
 
-        $this->gtbabel = $this->getMockBuilder(Gtbabel::class)
-            ->setConstructorArgs([
-                $utils,
-                $settings,
-                $log,
-                $tags,
-                $host,
-                $data,
-                $grabber,
-                $domfactory,
-                $router,
-                $gettext,
-                $excel
-            ])
-            ->onlyMethods([])
-            ->getMock();
+        $this->gtbabel = new Gtbabel(
+            $utils,
+            $settings,
+            $log,
+            $tags,
+            $host,
+            $data,
+            $grabber,
+            $domfactory,
+            $router,
+            $gettext,
+            $excel
+        );
     }
 
     public function test001()

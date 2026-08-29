@@ -6,6 +6,8 @@ use vielhuber\stringhelper\__;
 
 class Dom
 {
+    private const HTML_ENTITY_CONVERSION_MAP = [0x80, 0x10ffff, 0, 0x1fffff];
+
     public $DOMDocument;
     public $DOMXPath;
     public $excluded_nodes;
@@ -867,7 +869,7 @@ class Dom
                 }
             } else {
                 $f = new \DOMDocument();
-                $value = mb_convert_encoding($value, 'HTML-ENTITIES', 'UTF-8');
+                $value = mb_encode_numericentity($value, self::HTML_ENTITY_CONVERSION_MAP, 'UTF-8');
                 $result = @$f->loadHTML('<htmlfragment>' . $value . '</htmlfragment>');
                 if ($result) {
                     $import = $f->getElementsByTagName('htmlfragment')->item(0);
@@ -883,7 +885,7 @@ class Dom
 
     function replaceNodeWithString($node, $str)
     {
-        $str = mb_convert_encoding($str, 'HTML-ENTITIES', 'UTF-8');
+        $str = mb_encode_numericentity($str, self::HTML_ENTITY_CONVERSION_MAP, 'UTF-8');
         $tmp = new \DOMDocument();
         @$tmp->loadHTML($str, LIBXML_HTML_NOIMPLIED);
         $repl = $this->DOMDocument->importNode($tmp->documentElement, true);
@@ -912,7 +914,7 @@ class Dom
 
     function stringToNode($str)
     {
-        $str = mb_convert_encoding($str, 'HTML-ENTITIES', 'UTF-8');
+        $str = mb_encode_numericentity($str, self::HTML_ENTITY_CONVERSION_MAP, 'UTF-8');
         $tmp = new \DOMDocument();
         @$tmp->loadHTML($str, LIBXML_HTML_NOIMPLIED);
         $node = $this->DOMDocument->importNode($tmp->documentElement, true);

@@ -8,8 +8,8 @@ use Dotenv\Dotenv;
 
 class Test extends \PHPUnit\Framework\TestCase
 {
-    private $gtbabel;
-    private $bufferLevel;
+    private ?Gtbabel $gtbabel = null;
+    private int $bufferLevel = 0;
 
     protected function setUp(): void
     {
@@ -57,7 +57,13 @@ class Test extends \PHPUnit\Framework\TestCase
         $grabber = new Grabber($settings, $utils, $log, $data);
         $domfactory = new DomFactory($utils, $data, $host, $settings, $tags, $log);
         $router = new class ($data, $host, $settings, $log, $utils) extends Router {
-            function redirect($url, $status_code)
+            /**
+             * Expose redirects to assertions instead of sending HTTP headers.
+             *
+             * @param string $url
+             * @param int $status_code
+             */
+            function redirect($url, $status_code): never
             {
                 throw new \Exception($url);
             }
@@ -1601,7 +1607,6 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="de"><body><p>Einiger Content auf Deutsch.</p></body></html>';
         $this->gtbabel->stop();
-        $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'google');
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 28);
@@ -1624,7 +1629,6 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="de"><body><p>Einiger Content auf Deutsch.</p><p>Einiger Content auf Deutsch.</p></body></html>';
         $this->gtbabel->stop();
-        $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'google');
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 28);
@@ -1646,7 +1650,6 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="de"><body><p>Einiger Content auf Deutsch.</p><p>Einiger Content auf Deutsch.</p></body></html>';
         $this->gtbabel->stop();
-        $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'microsoft');
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 28);
@@ -1668,7 +1671,6 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="de"><body><p>Einiger Content auf Deutsch.</p><p>Anderer Content auf Deutsch.</p></body></html>';
         $this->gtbabel->stop();
-        $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'microsoft');
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 56);
@@ -1690,7 +1692,6 @@ class Test extends \PHPUnit\Framework\TestCase
         $this->gtbabel->start();
         echo '<!DOCTYPE html><html lang="de"><body><p>Einiger Content auf Deutsch.</p></body></html>';
         $this->gtbabel->stop();
-        $output = ob_get_contents();
         ob_end_clean();
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['service'], 'deepl');
         $this->assertSame($this->gtbabel->data->statsGetTranslatedCharsByService()[0]['length'], 28);
@@ -2718,7 +2719,7 @@ class Test extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    public function runDiff($filename, $time_max = 0, $overwrite_settings = [], $specific_host = null)
+    public function runDiff(string $filename, $time_max = 0, $overwrite_settings = [], $specific_host = null): void
     {
         // slowness factor
         if ($time_max > 0) {
@@ -2837,7 +2838,7 @@ class Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function normalize($str)
+    public function normalize(string $str): string
     {
         $str = __::minify_html($str);
 
@@ -2867,7 +2868,7 @@ class Test extends \PHPUnit\Framework\TestCase
         return $str;
     }
 
-    public function setHostTo($lng_target)
+    public function setHostTo(?string $lng_target): void
     {
         if ($lng_target === '' || $lng_target === '/') {
             $_SERVER['REQUEST_URI'] = '/';
@@ -2876,7 +2877,7 @@ class Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    public function setUrlTo($url)
+    public function setUrlTo(string $url): void
     {
         $url = str_replace(['http://', 'https://'], '', $url);
         if (strpos($url, '/') !== false) {
@@ -2890,12 +2891,12 @@ class Test extends \PHPUnit\Framework\TestCase
         $_SERVER['REQUEST_URI'] = $path;
     }
 
-    public function setRefererTo($url)
+    public function setRefererTo(string $url): void
     {
         $_SERVER['HTTP_REFERER'] = $url;
     }
 
-    public function setAjaxRequest($bool)
+    public function setAjaxRequest(bool $bool): void
     {
         if ($bool === true) {
             $_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
@@ -2906,7 +2907,7 @@ class Test extends \PHPUnit\Framework\TestCase
         }
     }
 
-    function log($msg)
+    function log(mixed $msg): void
     {
         if (!is_string($msg)) {
             $msg = serialize($msg);

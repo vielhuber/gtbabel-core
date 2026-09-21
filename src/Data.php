@@ -128,8 +128,15 @@ class Data
         ];
 
         if ($this->db !== null) {
-            $result = $this->db->fetch_all('SELECT * FROM ' . $this->table . '');
-            if (!empty($result)) {
+            $lastId = 0;
+            do {
+                $result = $this->db->fetch_all(
+                    'SELECT id, str, trans, lng_source, lng_target, context, checked FROM ' .
+                        $this->table .
+                        ' WHERE id > ? ORDER BY id ASC LIMIT 1000',
+                    $lastId
+                );
+                $count = count($result);
                 foreach ($result as $result__value) {
                     // we never change the encoding of strings (after grabbing from code, translation etc.)
                     // reason: sometimes, "<" must be encoded (if its part of html); sometimes, " must be encoded (if its part of an attribute)
@@ -148,8 +155,10 @@ class Data
                         $result__value['lng_target'] ?? ''
                     ][$result__value['context'] ?? ''][html_entity_decode($result__value['str'])] =
                         $result__value['checked'] == '1' ? true : false;
+                    $lastId = $result__value['id'];
                 }
-            }
+                unset($result, $result__value);
+            } while ($count === 1000);
         }
     }
 

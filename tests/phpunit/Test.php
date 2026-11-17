@@ -914,6 +914,124 @@ class Test extends \PHPUnit\Framework\TestCase
         );
     }
 
+    public function test_prefix_suffix_preserves_quoted_content(): void
+    {
+        $tags = new Tags();
+        foreach (
+            [
+                ['"Funzt"', 'Funzt', '"', '"'],
+                ['&quot;Funzt&quot;', 'Funzt', '&quot;', '&quot;'],
+                ['&quot;quote&quot;', 'quote', '&quot;', '&quot;'],
+                ['&bdquo;Bild&ldquo;', 'Bild', '&bdquo;', '&ldquo;'],
+                ['„Grüße“', 'Grüße', '„', '“'],
+                ['(Punkt)', 'Punkt', '(', ')'],
+                ['Funzt', 'Funzt', '', ''],
+                ['&quot;Funzt', '&quot;Funzt', '', '']
+            ]
+            as [$input, $content, $prefix, $suffix]
+        ) {
+            $this->assertSame(
+                [$content, ['prefix' => $prefix, 'suffix' => $suffix]],
+                $tags->removePrefixSuffix($input)
+            );
+        }
+    }
+
+    public function test_normalize_preserves_html_content(): void
+    {
+        foreach (
+            [
+                ['<div data-text=\'"Funzt"\'>Test</div>', '<div data-text="&quot;Funzt&quot;">Test</div>'],
+                ['<p title="&quot;Test&quot;">Grüße &amp; mehr</p>', '<p title="&#34;Test&#34;">Grüße &#38; mehr</p>'],
+                [
+                    '<div data-json=\'{"title":"Test"}\'></div>',
+                    '<div data-json="{&quot;title&quot;:&quot;Test&quot;}"></div>'
+                ]
+            ]
+            as [$expected, $actual]
+        ) {
+            $this->assertSame($this->normalize($expected), $this->normalize($actual));
+        }
+        foreach (
+            [
+                ['<p>&lt;strong&gt;Test&lt;/strong&gt;</p>', '<p><strong>Test</strong></p>'],
+                ['<p>&amp;quot;</p>', '<p>&quot;</p>'],
+                ['<script>let text = "&auml;";</script>', '<script>let text = "ä";</script>'],
+                ['<div data-text="&quot;Funzt&quot;"></div>', '<div data-text="Funzt"></div>'],
+                ['<div title=""></div>', '<div></div>'],
+                ['<strong>Test</strong>', '<em>Test</em>'],
+                ['<p>Test</p><p>More</p>', '<p>More</p><p>Test</p>'],
+                ['<a href="/a%2Fb">Test</a>', '<a href="/a/b">Test</a>'],
+                ['<a href="mailto:?subject=A%26B">Test</a>', '<a href="mailto:?subject=A&amp;B=">Test</a>']
+            ]
+            as [$expected, $actual]
+        ) {
+            $this->assertNotSame($this->normalize($expected), $this->normalize($actual));
+        }
+    }
+
+    public function test_mailto_query_values_are_encoded(): void
+    {
+        $settings = $this->getDefaultSettings();
+        $settings['debug_translations'] = false;
+        $this->gtbabel->config($settings);
+        $this->gtbabel->start();
+        $this->gtbabel->stop();
+
+        foreach (
+            [
+                ['Titel & Frage? 100% | Grüße', 'Body & More?', 'Titel & Frage? 100% | Grüße-en', 'Body & More?-en'],
+                ['42 & 7', '123 & 456', '42 & 7', '123 & 456']
+            ]
+            as [$subject, $body, $expectedSubject, $expectedBody]
+        ) {
+            $link =
+                'mailto:test@example.com?' .
+                http_build_query(['subject' => $subject, 'body' => $body], '', '&', PHP_QUERY_RFC3986);
+            $translated = $this->gtbabel->data->getTranslationOfEmailAndAddDynamicallyIfNeeded($link, 'de', 'en');
+            parse_str(parse_url($translated, PHP_URL_QUERY), $parameters);
+            $this->assertSame(['subject' => $expectedSubject, 'body' => $expectedBody], $parameters);
+            $this->assertSame('test@example.com', parse_url($translated, PHP_URL_PATH));
+            $this->assertDoesNotMatchRegularExpression('/%(?![0-9A-F]{2})|[\s|]/', $translated);
+            $this->assertSame(
+                $translated,
+                $this->gtbabel->data->getTranslationOfEmailAndAddDynamicallyIfNeeded(
+                    htmlspecialchars($link),
+                    'de',
+                    'en'
+                )
+            );
+        }
+        $this->gtbabel->reset();
+    }
+
+    public function test_wildcard_attributes_preserve_unicode_and_entities(): void
+    {
+        $settings = $this->getDefaultSettings();
+        $settings['debug_translations'] = false;
+        $this->gtbabel->config($settings);
+        $script = 'let month = "März"; let entity = "&amp;";';
+        $translated = $this->gtbabel->translate(
+            '<script>' .
+                $script .
+                '</script>' .
+                '<div data-text-unicode="Grüße &amp; ©" data-text-literal="&amp;copy;" ' .
+                'data-text-json=\'{"value":"Grüße &amp; ©"}\'></div>',
+            'en',
+            'de'
+        );
+        $dom = __::str_to_dom($translated);
+        $element = $dom->getElementsByTagName('div')->item(0);
+        $this->assertSame('Grüße & ©-en', $element->getAttribute('data-text-unicode'));
+        $this->assertSame('&copy;-en', $element->getAttribute('data-text-literal'));
+        $this->assertSame(
+            ['value' => 'Grüße & ©'],
+            json_decode($element->getAttribute('data-text-json'), true, 512, JSON_THROW_ON_ERROR)
+        );
+        $this->assertSame($script, $dom->getElementsByTagName('script')->item(0)->textContent);
+        $this->gtbabel->reset();
+    }
+
     public function test_data()
     {
         $settings = $this->getDefaultSettings();
@@ -1300,7 +1418,7 @@ class Test extends \PHPUnit\Framework\TestCase
         // however, gtbabel does not add two entries to avoid confusion
         echo '<div data-text="#allesfürdich">#allesfürdich</div>';
         echo '<p>foo &amp; bar<br/>baz</p>';
-        // this is also tricky: domdocument converts the double quotes around the attribute to single quotes!
+        // quoted attribute values must survive either HTML serialization style
         echo '<div data-text="' . htmlentities('"gnarr" & gnazz') . '"></div>';
         // this should be untouched
         echo '<a href="https://www.url.com/foo.php?lang=de&amp;foo=bar"></a>';
@@ -1312,14 +1430,16 @@ class Test extends \PHPUnit\Framework\TestCase
         ob_end_clean();
         $translations = $this->gtbabel->data->getTranslationsFromDatabase();
         $this->gtbabel->reset();
-        $this->assertEquals(
-            $output,
-            '<div data-text="#everythingforyou">#everythingforyou</div>' .
-                '<p>foo &amp; bar<br> baz</p>' .
-                '<div data-text=\'"gnarr" &amp; gnazz\'></div>' .
-                '<a href="https://www.url.com/foo.php?lang=de&amp;foo=bar"></a>' .
-                '<img src="" alt="First &amp; Test" data-text="Second &amp; Test">' .
-                '<img src="" alt="First &amp; Test" data-text="Second &amp; Test">'
+        $this->assertSame(
+            $this->normalize(
+                '<div data-text="#everythingforyou">#everythingforyou</div>' .
+                    '<p>foo &amp; bar<br> baz</p>' .
+                    '<div data-text=\'"gnarr" &amp; gnazz\'></div>' .
+                    '<a href="https://www.url.com/foo.php?lang=de&amp;foo=bar"></a>' .
+                    '<img src="" alt="First &amp; Test" data-text="Second &amp; Test">' .
+                    '<img src="" alt="First &amp; Test" data-text="Second &amp; Test">'
+            ),
+            $this->normalize($output)
         );
         $this->assertEquals(count($translations), 6);
         $this->assertEquals($translations[0]['str'], '#allesfürdich');
@@ -1869,8 +1989,8 @@ class Test extends \PHPUnit\Framework\TestCase
         <a href="mailto:"></a>
         <a href="mailto:david@vielhuber.de_EN"></a>
         <a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20test"></a>
-        <a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20link%20http://gtbabel.vielhuber.dev/en/fish"></a>
-        <a href="mailto:?subject=House&amp;body=http://gtbabel.vielhuber.dev/en/fish/"></a>
+        <a href="mailto:david@vielhuber.de_EN?subject=House&amp;body=This%20is%20a%20link%20http%3A%2F%2Fgtbabel.vielhuber.dev%2Fen%2Ffish"></a>
+        <a href="mailto:?subject=House&amp;body=http%3A%2F%2Fgtbabel.vielhuber.dev%2Fen%2Ffish%2F"></a>
         <a href="tel:+4989111312113"></a>
         <a href="http://test.de/beispiel-bilddatei9.jpg"></a>
         <a href="http://test.de/beispiel-pfad10"></a>
@@ -2840,15 +2960,20 @@ class Test extends \PHPUnit\Framework\TestCase
 
     public function normalize(string $str): string
     {
+        $is_html = __::string_is_html($str) && !__::string_is_json($str);
+        if ($is_html) {
+            $str = __::dom_to_str(__::str_to_dom($str));
+        }
         $str = __::minify_html($str);
 
         // <p> Test </p> should be replaced with <p>Test</p>
         $str = preg_replace('/>\s+/u', '>', $str);
         $str = preg_replace('/\s+</u', '<', $str);
 
-        // decode HTML entities multiple times to catch all variants
-        $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if (!$is_html) {
+            $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $str = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
 
         // normalize all dash/hyphen variations to standard hyphen-minus
         $dashes = [

@@ -1495,11 +1495,11 @@ class Data
         if ($args_pos !== false) {
             $args = substr($orig, $args_pos + 1);
             $orig = substr($orig, 0, $args_pos);
-            parse_str($args, $args_array);
+            parse_str(htmlspecialchars_decode($args, ENT_QUOTES), $args_array);
             $args_array_trans = [];
             foreach ($args_array as $args_array__key => $args_array__value) {
                 if ($this->stringShouldNotBeTranslated($args_array__value, null)) {
-                    $args_array_trans[] = $args_array__key . '=' . $args_array__value;
+                    $args_array_trans[] = rawurlencode($args_array__key) . '=' . rawurlencode($args_array__value);
                     continue;
                 }
                 $args_array__value = $this->prepareTranslationAndAddDynamicallyIfNeeded(
@@ -1509,12 +1509,8 @@ class Data
                     null,
                     $meta
                 );
-                if ($args_array__key === 'body') {
-                    $args_array__value = rawurlencode($args_array__value);
-                }
-                $args_array_trans[] = $args_array__key . '=' . $args_array__value;
+                $args_array_trans[] = rawurlencode($args_array__key) . '=' . rawurlencode($args_array__value);
             }
-            // don't use http_build_query, because "body" does not use rawurlencode then
             $args = '?' . implode('&', $args_array_trans);
         }
         if (trim($orig) != '') {

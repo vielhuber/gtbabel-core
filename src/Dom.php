@@ -316,7 +316,10 @@ class Dom
                                         }
                                         $content[] = [
                                             'key' => $matches__value[1],
-                                            'value' => $matches__value[2],
+                                            'value' => htmlspecialchars(
+                                                $nodes__value->getAttribute($matches__value[1]),
+                                                ENT_NOQUOTES | ENT_SUBSTITUTE
+                                            ),
                                             'type' => 'attribute'
                                         ];
                                     }

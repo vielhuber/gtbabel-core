@@ -254,12 +254,10 @@ class Tags
                     ($surrounder__value[0] === $surrounder__value[1] ? 2 : 1) &&
                 substr_count($str, $surrounder__value[1]) ===
                     ($surrounder__value[0] === $surrounder__value[1] ? 2 : 1) &&
-                $surrounder__value[0] .
-                    trim($str, $surrounder__value[0] . $surrounder__value[1]) .
-                    $surrounder__value[1] ===
-                    $str
+                str_starts_with($str, $surrounder__value[0]) &&
+                str_ends_with($str, $surrounder__value[1])
             ) {
-                $str = trim($str, $surrounder__value[0] . $surrounder__value[1]);
+                $str = mb_substr($str, mb_strlen($surrounder__value[0]), -mb_strlen($surrounder__value[1]));
                 $prefix .= $surrounder__value[0];
                 $suffix .= $surrounder__value[1];
             }
